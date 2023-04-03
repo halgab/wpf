@@ -70,21 +70,16 @@ namespace System.Windows.Documents
 
         // Inserts text into the block, up to the remaining block capacity.
         // Returns the number of chars actually inserted.
-        internal int InsertText(int logicalOffset, object text, int textStartIndex, int textEndIndex)
+        internal int InsertText(int logicalOffset, ReadOnlySpan<char> text)
         {
             int count;
-            string textString;
-            char[] textChars;
             char[] newText;
             int rightOfGapLength;
-
-            Invariant.Assert(text is string || text is char[], "Bad text parameter!");
-            Invariant.Assert(textStartIndex <= textEndIndex, "Bad start/end index!");
 
             // Splay this node so we don't invalidate any LeftSymbolCounts.
             Splay();
 
-            count = textEndIndex - textStartIndex;
+            count = text.Length;
 
             if (_text.Length < MaxBlockSize && count > _gapSize)
             {
@@ -109,19 +104,7 @@ namespace System.Windows.Documents
             // Truncate the copy.
             count = Math.Min(count, _gapSize);
 
-            textString = text as string;
-            if (textString != null)
-            {
-                // Do the work.
-                textString.CopyTo(textStartIndex, _text, logicalOffset, count);
-            }
-            else
-            {
-                textChars = (char[])text;
-
-                // Do the work.
-                Array.Copy(textChars, textStartIndex, _text, logicalOffset, count);
-            }
+            text.Slice(0, count).CopyTo(_text.AsSpan(logicalOffset));
 
             // Update the gap.
             _gapOffset += count;

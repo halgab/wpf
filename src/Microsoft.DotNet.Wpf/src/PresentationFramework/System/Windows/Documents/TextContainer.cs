@@ -828,7 +828,7 @@ namespace System.Windows.Documents
 
         // The InsertText worker.  Adds text to the tree at a specified position.
         // text is either a string or char[] to insert.
-        internal void InsertTextInternal(TextPointer position, object text)
+        internal void InsertTextInternal(TextPointer position, ReadOnlySpan<char> text)
         {
             TextTreeTextNode textNode;
             SplayTreeNode containingNode;
@@ -837,11 +837,9 @@ namespace System.Windows.Documents
             int textLength;
             LogicalDirection direction;
 
-            Invariant.Assert(text is string || text is char[], "Unexpected type for 'text' parameter!");
+            textLength = text.Length;
 
-            textLength = GetTextLength(text);
-
-            if (textLength == 0)
+            if (text.IsEmpty)
                 return;
 
             DemandCreateText();
@@ -1538,25 +1536,6 @@ namespace System.Windows.Documents
 
         // Returns the lenth of a text object.  Text objects are always either
         // strings or char arrays.
-        internal static int GetTextLength(object text)
-        {
-            string textString;
-            int length;
-
-            Invariant.Assert(text is string || text is char[], "Bad text parameter!");
-
-            textString = text as string;
-            if (textString != null)
-            {
-                length = textString.Length;
-            }
-            else
-            {
-                length = ((char[])text).Length;
-            }
-
-            return length;
-        }
 
         internal void AssertTree()
         {

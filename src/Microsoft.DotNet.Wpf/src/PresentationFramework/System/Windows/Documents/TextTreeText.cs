@@ -31,32 +31,29 @@ namespace System.Windows.Documents
 
         // Inserts text into the text block array.  The text is either a string
         // or an array of char.
-        internal static void InsertText(TextTreeRootTextBlock rootTextBlock, int offset, object text)
+        internal static void InsertText(TextTreeRootTextBlock rootTextBlock, int offset, ReadOnlySpan<char> text)
         {
             TextTreeTextBlock block;
             int localOffset;
             int insertCount;
-            int textLength;
-
-            Invariant.Assert(text is string || text is char[], "Bad text parameter!");
 
             // Get the block matching the insertion point.
             block = FindBlock(rootTextBlock, offset, out localOffset);
 
             // Fill this block to capacity.
-            textLength = TextContainer.GetTextLength(text);
-            insertCount = block.InsertText(localOffset, text, 0, textLength);
+            insertCount = block.InsertText(localOffset, text);
+            text = text.Slice(insertCount);
 
-            if (insertCount < textLength)
+            if (!text.IsEmpty)
             {
                 // Put all the text to the smaller side of the gap into the new block.
                 if (block.GapOffset < TextTreeTextBlock.MaxBlockSize / 2)
                 {
-                    InsertTextLeft(block, text, insertCount);
+                    InsertTextLeft(block, text);
                 }
                 else
                 {
-                    InsertTextRight(block, text, insertCount);
+                    InsertTextRight(block, text);
                 }
             }
         }
@@ -189,21 +186,26 @@ namespace System.Windows.Documents
         // The actual value stored doesn't really matter, it will never be read.
         internal static void InsertObject(TextTreeRootTextBlock rootTextBlock, int offset)
         {
-            InsertText(rootTextBlock, offset, new string((char)0xffff, 1));
+            char text = (char)0xffff;
+            InsertText(rootTextBlock, offset, new ReadOnlySpan<char>(in text));
         }
 
         // Insert placeholders for elements edges into the block array.
         // The actual value stored doesn't really matter, it will never be read.
         internal static void InsertElementEdges(TextTreeRootTextBlock rootTextBlock, int offset, int childSymbolCount)
         {
+            Span<char> text = stackalloc char[2];
+            text[0] = (char)0xbeef;
             if (childSymbolCount == 0)
             {
-                InsertText(rootTextBlock, offset, new string((char)0xbeef, 2));
+                text[1] = text[0];
+                InsertText(rootTextBlock, offset, text);
             }
             else
             {
-                InsertText(rootTextBlock, offset, new string((char)0xbeef, 1));
-                InsertText(rootTextBlock, offset + childSymbolCount + 1, new string((char)0x0, 1));
+                InsertText(rootTextBlock, offset, text.Slice(0, 1));
+                text[1] = (char)0x0;
+                InsertText(rootTextBlock, offset + childSymbolCount + 1, text.Slice(1));
             }
         }
 
@@ -261,18 +263,14 @@ namespace System.Windows.Documents
         }
 
         // Helper for InsertText.  Inserts text to the left of an existing block.
-        private static void InsertTextLeft(TextTreeTextBlock rightBlock, object text, int textOffset)
+        private static void InsertTextLeft(TextTreeTextBlock rightBlock, ReadOnlySpan<char> text)
         {
             int newBlockCount;
             TextTreeTextBlock leftBlock;
             TextTreeTextBlock neighborBlock;
             TextTreeTextBlock newBlock;
             int count;
-            int textEndOffset = -1;
             int i;
-            int length;
-
-            length = TextContainer.GetTextLength(text);
 
             if (rightBlock.GapOffset == 0)
             {
@@ -280,11 +278,12 @@ namespace System.Windows.Documents
                 neighborBlock = (TextTreeTextBlock)rightBlock.GetPreviousNode();
                 if (neighborBlock != null)
                 {
-                    textOffset += neighborBlock.InsertText(neighborBlock.Count, text, textOffset, length);
+                    int offset = neighborBlock.InsertText(neighborBlock.Count, text);
+                    text = text.Slice(offset);
                 }
             }
 
-            if (textOffset < length)
+            if (!text.IsEmpty)
             {
                 // Try adding just one block.
                 newBlockCount = 1;
@@ -292,47 +291,46 @@ namespace System.Windows.Documents
                 leftBlock = rightBlock.SplitBlock();
 
                 // Fill up the left block.
-                textOffset += leftBlock.InsertText(leftBlock.Count, text, textOffset, length);
+                int offset = leftBlock.InsertText(leftBlock.Count, text);
+                text = text.Slice(offset);
 
-                if (textOffset < length)
+                if (!text.IsEmpty)
                 {
                     // Fill up the larger block.
                     // We need to copy from the end of the text here.
-                    count = Math.Min(rightBlock.FreeCapacity, length - textOffset);
-                    textEndOffset = length - count;
-                    rightBlock.InsertText(0, text, textEndOffset, length);
+                    count = Math.Min(rightBlock.FreeCapacity, text.Length);
+                    rightBlock.InsertText(0, text[^count..]);
+                    text = text[..^count];
 
-                    if (textOffset < textEndOffset)
+                    if (!text.IsEmpty)
                     {
                         // We've filled both blocks, and there's still more text to copy.
                         // Prepare to allocate some more blocks.
-                        newBlockCount += (textEndOffset - textOffset + TextTreeTextBlock.MaxBlockSize - 1) / TextTreeTextBlock.MaxBlockSize;
+                        newBlockCount += (text.Length + TextTreeTextBlock.MaxBlockSize - 1) / TextTreeTextBlock.MaxBlockSize;
                     }
                 }
 
                 for (i = 1; i < newBlockCount; i++)
                 {
                     newBlock = new TextTreeTextBlock(TextTreeTextBlock.MaxBlockSize);
-                    textOffset += newBlock.InsertText(0, text, textOffset, textEndOffset);
+                    offset = newBlock.InsertText(0, text);
+                    text = text.Slice(offset);
                     newBlock.InsertAtNode(leftBlock, false /* insertBefore */);
                     leftBlock = newBlock;
                 }
-                Invariant.Assert(newBlockCount == 1 || textOffset == textEndOffset, "Not all text copied!");
+                Invariant.Assert(newBlockCount == 1 || text.IsEmpty, "Not all text copied!");
             }
         }
 
         // Helper for InsertText.  Inserts text to the right of an existing block.
-        private static void InsertTextRight(TextTreeTextBlock leftBlock, object text, int textOffset)
+        private static void InsertTextRight(TextTreeTextBlock leftBlock, ReadOnlySpan<char> text)
         {
             int newBlockCount;
             TextTreeTextBlock rightBlock;
             TextTreeTextBlock neighborBlock;
             TextTreeTextBlock newBlock;
             int count;
-            int textEndOffset;
             int i;
-
-            textEndOffset = TextContainer.GetTextLength(text);
 
             if (leftBlock.GapOffset == leftBlock.Count)
             {
@@ -340,13 +338,13 @@ namespace System.Windows.Documents
                 neighborBlock = (TextTreeTextBlock)leftBlock.GetNextNode();
                 if (neighborBlock != null)
                 {
-                    count = Math.Min(neighborBlock.FreeCapacity, textEndOffset - textOffset);
-                    neighborBlock.InsertText(0, text, textEndOffset - count, textEndOffset);
-                    textEndOffset -= count;
+                    count = Math.Min(neighborBlock.FreeCapacity, text.Length);
+                    neighborBlock.InsertText(0, text[^count..]);
+                    text = text.Slice(0, count);
                 }
             }
 
-            if (textOffset < textEndOffset)
+            if (!text.IsEmpty)
             {
                 // Try adding just one block.
                 newBlockCount = 1;
@@ -354,32 +352,34 @@ namespace System.Windows.Documents
                 rightBlock = leftBlock.SplitBlock();
 
                 // Fill up the right block.
-                count = Math.Min(rightBlock.FreeCapacity, textEndOffset - textOffset);
-                rightBlock.InsertText(0, text, textEndOffset - count, textEndOffset);
-                textEndOffset -= count;
+                count = Math.Min(rightBlock.FreeCapacity, text.Length);
+                rightBlock.InsertText(0, text[^count..]);
+                text = text.Slice(0, count);
 
-                if (textOffset < textEndOffset)
+                if (!text.IsEmpty)
                 {
                     // Fill up the larger block.
                     // We need to copy from the end of the text here.
-                    textOffset += leftBlock.InsertText(leftBlock.Count, text, textOffset, textEndOffset);
+                    int offset = leftBlock.InsertText(leftBlock.Count, text);
+                    text = text.Slice(offset);
 
-                    if (textOffset < textEndOffset)
+                    if (!text.IsEmpty)
                     {
                         // We've filled both blocks, and there's still more text to copy.
                         // Prepare to allocate some more blocks.
-                        newBlockCount += (textEndOffset - textOffset + TextTreeTextBlock.MaxBlockSize - 1) / TextTreeTextBlock.MaxBlockSize;
+                        newBlockCount += (text.Length + TextTreeTextBlock.MaxBlockSize - 1) / TextTreeTextBlock.MaxBlockSize;
                     }
                 }
 
                 for (i=0; i<newBlockCount-1; i++)
                 {
                     newBlock = new TextTreeTextBlock(TextTreeTextBlock.MaxBlockSize);
-                    textOffset += newBlock.InsertText(0, text, textOffset, textEndOffset);
+                    int offset = newBlock.InsertText(0, text);
+                    text = text.Slice(offset);
                     newBlock.InsertAtNode(leftBlock, false /* insertBefore */);
                     leftBlock = newBlock;
                 }
-                Invariant.Assert(textOffset == textEndOffset, "Not all text copied!");
+                Invariant.Assert(text.IsEmpty, "Not all text copied!");
             }
         }
 

@@ -99,7 +99,7 @@ namespace System.Windows.Documents
         /// <see cref="ITextPointer.GetTextInRun(LogicalDirection,char[],int,int)"/>
         /// </summary>
         /// <remarks>Only reutrn uninterrupted runs of text</remarks>
-        int ITextPointer.GetTextInRun(LogicalDirection direction, char[] textBuffer, int startIndex, int count)
+        int ITextPointer.GetTextInRun(LogicalDirection direction, Span<char> textBuffer)
         {
             // There is no content in this container.
             return 0;
@@ -356,7 +356,7 @@ namespace System.Windows.Documents
 
         /// <summary>
         /// Returns the closest insertion position, treating all unicode code points
-        /// as valid insertion positions.  A useful performance win over 
+        /// as valid insertion positions.  A useful performance win over
         /// GetNextInsertionPosition when only formatting scopes are important.
         /// <see cref="ITextPointer.GetFormatNormalizedPosition"/>
         /// </summary>

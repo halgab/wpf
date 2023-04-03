@@ -4,7 +4,7 @@
 
 //
 // Description: Default Framework TextContainer implementation.
-// 
+//
 
 //#define DEBUG_SLOW
 
@@ -24,33 +24,33 @@ namespace System.Windows.Documents
     /// The TextContainer class is an implementation of the abstract TextContainer class,
     /// the Framework's Text Object Model.  It serves as a general purpose
     /// backing store for text documents.
-    /// 
+    ///
     /// TextContainer accepts three kinds of content:
-    /// 
+    ///
     ///     - Text.  Raw characters/strings.
     ///     - UIElement controls.
     ///     - TextElements -- Inline, Paragraph, etc.  These elements scope other
     ///       content and provide structural information and/or hold DependencyProperty
     ///       values.
-    /// 
+    ///
     /// References to content in the TextContainer are represented by TextPointer and
     /// TextNavigator objects.  Once allocated, TextPositions may never be modified;
     /// TextNavigators may be repositioned and are the most efficent way to walk
     /// the TextContainer content.
-    /// 
+    ///
     /// Listeners may attach delegates to the TextChanged event to receive a
     /// notification whenever content is added, removed, or modified.
-    /// 
+    ///
     /// In addition to TextContainer overrides, TextContainer extends the Text Object Model
     /// with a number of features:
-    /// 
+    ///
     ///     - The TextContainer constructor takes an optional DependencyObject argument
     ///       used to inherit DependencyProperty values.  If this argument is also
     ///       a FrameworkElement or FrameworkContentElement, it will parent all
     ///       top-level TextElements.
     ///     - Several methods are added that allow direct access to TextElement
     ///       instances.
-    /// 
+    ///
     /// </summary>
     //
     // INTERNAL COMMENTS.
@@ -96,7 +96,7 @@ namespace System.Windows.Documents
     //
     //      - TextTreeTextElementNode.  Always maps to a single TextElement.
     //        Element nodes may contain other nodes.
-    //      
+    //
     //      - TextTreeTextNode.  References text.  Never contains other nodes.
     //
     //      - TextTreeObjectNode.  Always maps to a single UIElement.  Never
@@ -517,7 +517,7 @@ namespace System.Windows.Documents
             int nodeOffset = pointer.Handle1;
             TextPointerContext context;
             ElementEdge edge;
-            
+
             if (node is TextTreeTextNode && nodeOffset > 0 && nodeOffset < node.SymbolCount)
             {
                 context = TextPointerContext.Text;
@@ -561,7 +561,7 @@ namespace System.Windows.Documents
             return GetInternalOffset(position2) - GetInternalOffset(position1);
         }
 
-        int ITextContainer.GetTextInRun(StaticTextPointer position, LogicalDirection direction, char[] textBuffer, int startIndex, int count)
+        int ITextContainer.GetTextInRun(StaticTextPointer position, LogicalDirection direction, Span<char> textBuffer)
         {
             TextTreeNode node = (TextTreeNode)position.Handle0;
             int nodeOffset = position.Handle1;
@@ -574,7 +574,7 @@ namespace System.Windows.Documents
                 nodeOffset = -1;
             }
 
-            return textNode == null ? 0 : TextPointer.GetTextInRun(this, textNode.GetSymbolOffset(this.Generation), textNode, nodeOffset, direction, textBuffer, startIndex, count);
+            return textNode == null ? 0 : TextPointer.GetTextInRun(this, textNode.GetSymbolOffset(this.Generation), textNode, nodeOffset, direction, textBuffer);
         }
 
         object ITextContainer.GetAdjacentElement(StaticTextPointer position, LogicalDirection direction)
@@ -735,7 +735,7 @@ namespace System.Windows.Documents
 
             return (parent == null) ? DependencyProperty.UnsetValue : parent.GetValue(formattingProperty);
         }
-        
+
         // Prepares the tree for an AddChange call, and raises the Changing
         // event if it has not already fired in this change block.
         //
@@ -1168,7 +1168,7 @@ namespace System.Windows.Documents
                 ReparentLogicalChildren(elementNode, elementNode.TextElement, parentLogicalNode /* oldParent */);
             }
 
-            // Notify the TextElement of a content change if it was moved to parent new content. This 
+            // Notify the TextElement of a content change if it was moved to parent new content. This
             // can happen when Runs get merged.
             if (scopesExistingContent)
             {
@@ -1606,7 +1606,7 @@ namespace System.Windows.Documents
                 if (!_rootNode.CaretUnitBoundaryCache && position.LogicalDirection == LogicalDirection.Backward)
                 {
                     // In MIL Text and TextView worlds, a position at trailing edge of a newline (with backward gravity)
-                    // is not an allowed caret stop. 
+                    // is not an allowed caret stop.
                     // However, in TextPointer world we must allow such a position to be a valid insertion position,
                     // since it breaks textrange normalization for empty ranges.
                     // Hence, we need to check for TextView.IsAtCaretUnitBoundary in reverse direction here.
@@ -1619,7 +1619,7 @@ namespace System.Windows.Documents
             return _rootNode.CaretUnitBoundaryCache;
         }
 
-        #endregion Internal Methods        
+        #endregion Internal Methods
 
         //------------------------------------------------------
         //
@@ -1961,9 +1961,9 @@ namespace System.Windows.Documents
         // Undo manager associated with this TextContainer.
         // May be null.
         internal UndoManager UndoManager
-        { 
+        {
             get
-            { 
+            {
                 return _undoManager;
             }
         }
@@ -2011,7 +2011,7 @@ namespace System.Windows.Documents
             }
         }
 
-        
+
         #endregion Internal Properties
 
         //------------------------------------------------------
@@ -2148,7 +2148,7 @@ namespace System.Windows.Documents
         //
         // Here, we have to be very careful never to reference a node
         // edge between the zero-width node and the non-zero width node.
-        // 
+        //
         // A: <TextTreeTextNode SymbolCount=0/><TextTreeTextNode SymbolCount=1+/>
         // B: <TextTreeTextNode SymbolCount=1+/><TextTreeTextNode SymbolCount=0/>
         //
@@ -2412,8 +2412,8 @@ namespace System.Windows.Documents
                 Invariant.Assert(startPosition.Parent == endPosition.Parent);
                 TextElement textElement = startPosition.Parent as TextElement;
                 if (textElement != null)
-                {               
-                    textElement.OnTextUpdated();                    
+                {
+                    textElement.OnTextUpdated();
                 }
             }
 
@@ -2852,17 +2852,17 @@ namespace System.Windows.Documents
             // Record all the IME related char state before the extract.
             int imeCharCount = elementNode.IMECharCount;
             int imeLeftEdgeCharCount = elementNode.IMELeftEdgeCharCount;
-            
+
             int nextNodeCharDelta = 0;
-            
-            // DevDiv.1092668 We care about the next node only if it will become the First IME Visible Sibling 
-            // after the extraction. If this is a deep extract we shouldn't care if the element is empty, 
+
+            // DevDiv.1092668 We care about the next node only if it will become the First IME Visible Sibling
+            // after the extraction. If this is a deep extract we shouldn't care if the element is empty,
             // since all of its contents are getting extracted as well
             TextTreeTextElementNode nextNode = null;
             if ((deep || empty) && element.IsFirstIMEVisibleSibling)
             {
                 nextNode = (TextTreeTextElementNode)elementNode.GetNextNode();
-                
+
                 if (nextNode != null)
                 {
                     // The following node is the new first ime visible sibling.
@@ -2893,7 +2893,7 @@ namespace System.Windows.Documents
                 // Unlink the TextElement from the TextElementNode.
                 element.TextElementNode = null;
 
-                // Pull out the edge symbols from the text store.            
+                // Pull out the edge symbols from the text store.
                 TextTreeText.RemoveElementEdges(_rootNode.RootTextBlock, symbolOffset, elementNode.SymbolCount);
             }
             else
@@ -2972,7 +2972,7 @@ namespace System.Windows.Documents
         }
 
         // Removes an element node from its sibling tree.
-        // 
+        //
         // If deep == true, then this method also removes any contained nodes
         // and returns a deep copy of them.
         //

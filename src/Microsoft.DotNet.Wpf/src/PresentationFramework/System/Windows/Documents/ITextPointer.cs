@@ -63,7 +63,7 @@ namespace System.Windows.Documents
         string GetTextInRun(LogicalDirection direction);
 
         // <see cref="TextPointer.GetTextInRun"/>
-        int GetTextInRun(LogicalDirection direction, char[] textBuffer, int startIndex, int count);
+        int GetTextInRun(LogicalDirection direction, Span<char> textBuffer);
 
         // <see cref="TextPointer.GetAdjacentElement"/>
         //  this should return DependencyObject (which is

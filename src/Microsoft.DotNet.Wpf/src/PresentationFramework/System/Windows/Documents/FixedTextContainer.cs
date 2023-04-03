@@ -124,9 +124,9 @@ namespace System.Windows.Documents
             return ((ITextPointer)position1.Handle0).GetOffsetToPosition((ITextPointer)position2.Handle0);
         }
 
-        int ITextContainer.GetTextInRun(StaticTextPointer position, LogicalDirection direction, char[] textBuffer, int startIndex, int count)
+        int ITextContainer.GetTextInRun(StaticTextPointer position, LogicalDirection direction, Span<char> textBuffer)
         {
-            return ((ITextPointer)position.Handle0).GetTextInRun(direction, textBuffer, startIndex, count);
+            return ((ITextPointer)position.Handle0).GetTextInRun(direction, textBuffer);
         }
 
         object ITextContainer.GetAdjacentElement(StaticTextPointer position, LogicalDirection direction)
@@ -428,7 +428,7 @@ namespace System.Windows.Documents
                 for(int i=0; i<elements.Length; i++)
                 {
                     FixedSOMElement elem = elements[i];
-                    
+
                     FixedNode fn = elem.FixedNode;
                     // Get the FixedPage if possible
                     FixedPage page = this.FixedDocument.SyncGetPageWithCheck(fn.Page);

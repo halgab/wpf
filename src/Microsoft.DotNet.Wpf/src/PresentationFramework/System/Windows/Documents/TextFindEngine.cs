@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 //
-// Description: 
+// Description:
 //   Base class for TextRange find functionality.
 //
 //   See spec at: Find Spec.doc
@@ -136,18 +136,18 @@ namespace System.Windows.Documents
             if (findContainerStartPosition is DocumentSequenceTextPointer ||
                 findContainerStartPosition is FixedTextPointer)
             {
-                return FixedFindEngine.Find(findContainerStartPosition, 
+                return FixedFindEngine.Find(findContainerStartPosition,
                                             findContainerEndPosition,
                                             findPattern,
                                             cultureInfo,
-                                            matchCase, 
+                                            matchCase,
                                             matchWholeWord,
                                             matchLast,
                                             matchDiacritics,
                                             matchKashida,
                                             matchAlefHamza);
             }
-            
+
             // Find the text with the specified option flags.
             findResult = InternalFind(
                 findContainerStartPosition,
@@ -206,7 +206,7 @@ namespace System.Windows.Documents
                 navigator = startPosition;
                 direction = LogicalDirection.Forward;
             }
-            
+
             // Set the text block size to read the find text content.
             // The block size must be bigger than the double of find pattern size
             // so that we can find matches intersected by neighboring blocks.
@@ -227,9 +227,9 @@ namespace System.Windows.Documents
                 // Set the find text content from reading text of the current text position.
                 // Set the find text position map as well to track of the text pointer of the text content.
                 findTextLength = SetFindTextAndFindTextPositionMap(
-                    startPosition, 
-                    endPosition, 
-                    navigator, 
+                    startPosition,
+                    endPosition,
+                    navigator,
                     direction,
                     matchLast,
                     findText,
@@ -369,7 +369,7 @@ namespace System.Windows.Documents
 
             return hasNeighboringSeparatorChar;
         }
-        
+
         /// <summary>
         /// Find text and return the matched index of the find text content.
         /// </summary>
@@ -640,12 +640,12 @@ namespace System.Windows.Documents
         /// Returns the number of characters actually loaded into the findText array.
         /// </returns>
         private static int SetFindTextAndFindTextPositionMap(
-            ITextPointer startPosition, 
-            ITextPointer endPosition, 
-            ITextPointer navigator, 
+            ITextPointer startPosition,
+            ITextPointer endPosition,
+            ITextPointer navigator,
             LogicalDirection direction,
             bool matchLast,
-            char[] findText,
+            Span<char> findText,
             int[] findTextPositionMap)
         {
             Invariant.Assert(startPosition.CompareTo(navigator) <= 0);
@@ -655,9 +655,9 @@ namespace System.Windows.Documents
             int inlineCount = 0;
             int findTextLength = 0;
 
-            // Set the first offset which is zero on TextBufferSize + 1 location of 
+            // Set the first offset which is zero on TextBufferSize + 1 location of
             // the text position map in case of the backward searching
-            if (matchLast && findTextLength == 0)
+            if (matchLast)
             {
                 findTextPositionMap[findTextPositionMap.Length - 1] = 0;
             }
@@ -673,7 +673,7 @@ namespace System.Windows.Documents
                         if (!matchLast)
                         {
                             runCount = Math.Min(runCount, navigator.GetOffsetToPosition(endPosition));
-                            navigator.GetTextInRun(direction, findText, findTextLength, runCount);
+                            navigator.GetTextInRun(direction, findText.Slice(findTextLength, runCount));
 
                             for (int i = findTextLength; i < findTextLength + runCount; i++)
                             {
@@ -684,10 +684,8 @@ namespace System.Windows.Documents
                         {
                             runCount = Math.Min(runCount, startPosition.GetOffsetToPosition(navigator));
                             navigator.GetTextInRun(
-                                direction, 
-                                findText,
-                                findText.Length - findTextLength - runCount, 
-                                runCount);
+                                direction,
+                                findText.Slice(findText.Length - findTextLength - runCount, runCount));
 
                             // Set the text offest for the amount of runCount from the last index
                             // of text position map
@@ -748,7 +746,7 @@ namespace System.Windows.Documents
                             findTextLength++;
 
                             // Set the private unicode value and text offset
-                            findText[findText.Length - findTextLength] = '\xf8ff'; 
+                            findText[findText.Length - findTextLength] = '\xf8ff';
                             findTextPositionMap[findText.Length - findTextLength] = findTextLength + inlineCount;
                         }
 
@@ -783,8 +781,8 @@ namespace System.Windows.Documents
 
         // Initialize bidi flags that check the bidi and alef character.
         internal static void InitializeBidiFlags(
-            string textString, 
-            out bool stringContainedBidiCharacter, 
+            string textString,
+            out bool stringContainedBidiCharacter,
             out bool stringContainedAlefCharacter)
         {
             stringContainedBidiCharacter = false;
@@ -945,7 +943,7 @@ namespace System.Windows.Documents
         #region Private Fields
 
         private const int TextBlockLength = 64;
-                                                                                    
+
         private const char UnicodeBidiStart                 = '\u0590';
         private const char UnicodeBidiEnd                   = '\u07bf';
 

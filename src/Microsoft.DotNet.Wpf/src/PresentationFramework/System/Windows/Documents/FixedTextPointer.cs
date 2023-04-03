@@ -22,7 +22,7 @@ namespace System.Windows.Documents
 
     /// <summary>
     ///  FixedTextPointer is an implementation of TextPointer/TextNavigator
-    ///  for Fixed Document. 
+    ///  for Fixed Document.
     /// </summary>
     /// <remarks>
     /// A FixedTextPointer is represented by a FlowPosition in the backing store
@@ -131,23 +131,15 @@ namespace System.Windows.Documents
         /// <see cref="ITextPointer.GetTextInRun(LogicalDirection,char[],int,int)"/>
         /// </summary>
         /// <remarks>Only reutrn uninterrupted runs of text</remarks>
-        int ITextPointer.GetTextInRun(LogicalDirection direction, char[] textBuffer, int startIndex, int count)
+        int ITextPointer.GetTextInRun(LogicalDirection direction, Span<char> textBuffer)
         {
             ValidationHelper.VerifyDirection(direction, "direction");
-            if (textBuffer == null)
-            {
-                throw new ArgumentNullException("textBuffer");
-            }
-            if (count < 0)
-            {
-                throw new ArgumentException(SR.Format(SR.NegativeValue, "count"));
-            }
 
             if (_flowPosition.GetPointerContext(direction) != TextPointerContext.Text)
             {
                 return 0;
             }
-            return _flowPosition.GetTextInRun(direction, count, textBuffer, startIndex);
+            return _flowPosition.GetTextInRun(direction, textBuffer);
         }
 
         /// <summary>
@@ -346,7 +338,7 @@ namespace System.Windows.Documents
         }
 
         // Returns the closest insertion position, treating all unicode code points
-        // as valid insertion positions.  A useful performance win over 
+        // as valid insertion positions.  A useful performance win over
         // GetNextInsertionPosition when only formatting scopes are important.
         /// <summary>
         /// <see cref="ITextPointer.GetFormatNormalizedPosition"/>
@@ -410,7 +402,7 @@ namespace System.Windows.Documents
         int ITextPointer.MoveByOffset(int offset)
         {
             if (_isFrozen) throw new InvalidOperationException(SR.TextPositionIsFrozen);
-    
+
             if (!_flowPosition.Move(offset))
             {
                 throw new ArgumentException(SR.BadDistance, "offset");
@@ -592,7 +584,7 @@ namespace System.Windows.Documents
                 if (!isAtCaretUnitBoundary && this.LogicalDirection == LogicalDirection.Backward)
                 {
                     // In MIL Text and TextView worlds, a position at trailing edge of a newline (with backward gravity)
-                    // is not an allowed caret stop. 
+                    // is not an allowed caret stop.
                     // However, in TextPointer world we must allow such a position to be a valid insertion position,
                     // since it breaks textrange normalization for empty ranges.
                     // Hence, we need to check for TextView.IsAtCaretUnitBoundary in reverse direction below.

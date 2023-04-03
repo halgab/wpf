@@ -243,9 +243,9 @@ namespace System.Windows.Controls
             return ((ITextPointer)position1.Handle0).GetOffsetToPosition((ITextPointer)position2.Handle0);
         }
 
-        int ITextContainer.GetTextInRun(StaticTextPointer position, LogicalDirection direction, char[] textBuffer, int startIndex, int count)
+        int ITextContainer.GetTextInRun(StaticTextPointer position, LogicalDirection direction, Span<char> textBuffer)
         {
-            return ((ITextPointer)position.Handle0).GetTextInRun(direction, textBuffer, startIndex, count);
+            return ((ITextPointer)position.Handle0).GetTextInRun(direction, textBuffer);
         }
 
         object ITextContainer.GetAdjacentElement(StaticTextPointer position, LogicalDirection direction)
@@ -328,7 +328,7 @@ namespace System.Windows.Controls
             Invariant.Assert(index == -1, "Couldn't find position to remove!");
         }
 
-        #endregion Internal Methods        
+        #endregion Internal Methods
 
         //------------------------------------------------------
         //
@@ -351,9 +351,9 @@ namespace System.Windows.Controls
         /// property returns true.
         /// </remarks>
         bool ITextContainer.IsReadOnly
-        { 
+        {
             get
-            { 
+            {
                 return false;
             }
         }
@@ -393,8 +393,8 @@ namespace System.Windows.Controls
         {
             get
             {
-                //  This property is used only during textrange normalization. 
-                // For completeness, we should implement this counter since PasswordBox content is editable. 
+                //  This property is used only during textrange normalization.
+                // For completeness, we should implement this counter since PasswordBox content is editable.
                 // However in V1 we do not expose ranges in PasswordBox publicly.
                 // Bug 1424449 tracks this issue.
                 return 0;
@@ -432,11 +432,11 @@ namespace System.Windows.Controls
             }
         }
 
-        
+
         // We need to store the text selection as we will use it later on to access
         // the UiScope during splitting text for selection purposes.
         ITextSelection ITextContainer.TextSelection
-        { 
+        {
             get
             {
                 return _textSelection;
@@ -671,7 +671,7 @@ namespace System.Windows.Controls
                 UpdatePositionList(offset, delta);
 
                 textPosition = new PasswordTextPointer(this, LogicalDirection.Forward, offset);
-                
+
                 if (delta > 0)
                 {
                     symbolCount = delta;

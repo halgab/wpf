@@ -189,10 +189,10 @@ namespace System.Windows.Controls
             return TextPointerBase.GetTextInRun(this, direction);
         }
 
-        int ITextPointer.GetTextInRun(LogicalDirection direction, char[] textBuffer, int startIndex, int count)
+        int ITextPointer.GetTextInRun(LogicalDirection direction, Span<char> textBuffer)
         {
+            int count = textBuffer.Length;
             int finalCount;
-            int i;
 
             // Truncate based on document size.
             if (direction == LogicalDirection.Forward)
@@ -205,11 +205,7 @@ namespace System.Windows.Controls
             }
 
             // Substitute a placeholder char for the real password text.
-            char passwordChar = _container.PasswordChar;
-            for (i = 0; i < finalCount; i++)
-            {
-                textBuffer[startIndex + i] = passwordChar;
-            }
+            textBuffer.Slice(0, finalCount).Fill(_container.PasswordChar);
 
             return finalCount;
         }
@@ -576,7 +572,7 @@ namespace System.Windows.Controls
         }
 
         // Returns the closest insertion position, treating all unicode code points
-        // as valid insertion positions.  A useful performance win over 
+        // as valid insertion positions.  A useful performance win over
         // GetNextInsertionPosition when only formatting scopes are important.
         ITextPointer ITextPointer.GetFormatNormalizedPosition(LogicalDirection direction)
         {

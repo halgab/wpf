@@ -67,11 +67,11 @@ namespace System.Windows.Documents
             return _textContainer.GetOffsetToPosition(this, position);
         }
 
-        internal int GetTextInRun(LogicalDirection direction, char[] textBuffer, int startIndex, int count)
+        internal int GetTextInRun(LogicalDirection direction, Span<char> textBuffer)
         {
             AssertGeneration();
 
-            return _textContainer.GetTextInRun(this, direction, textBuffer, startIndex, count);
+            return _textContainer.GetTextInRun(this, direction, textBuffer);
         }
 
         internal object GetAdjacentElement(LogicalDirection direction)

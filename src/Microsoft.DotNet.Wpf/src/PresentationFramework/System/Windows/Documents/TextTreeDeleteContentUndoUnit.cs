@@ -47,7 +47,7 @@ namespace System.Windows.Documents
         }
 
         #endregion Constructors
- 
+
         //------------------------------------------------------
         //
         //  Public Methods
@@ -81,7 +81,7 @@ namespace System.Windows.Documents
             }
         }
 
-        #endregion Public Methods        
+        #endregion Public Methods
 
         //------------------------------------------------------
         //
@@ -241,7 +241,7 @@ namespace System.Windows.Documents
             text = new char[count];
 
             // Copy the text.
-            TextTreeText.ReadText(this.TextContainer.RootTextBlock, symbolOffset, count, text, 0 /*startIndex*/);
+            TextTreeText.ReadText(this.TextContainer.RootTextBlock, symbolOffset, count, text);
 
             container = new TextContentContainer(text);
 
@@ -473,7 +473,7 @@ namespace System.Windows.Documents
 
                 if(_columns != null)
                 {
-                    TextPointer textPointerTable = new TextPointer(navigator.TextContainer.Start, _cpTable, LogicalDirection.Forward); 
+                    TextPointer textPointerTable = new TextPointer(navigator.TextContainer.Start, _cpTable, LogicalDirection.Forward);
                     Table table = (Table) textPointerTable.Parent;
                     RestoreColumns(table, _columns);
                 }

@@ -4,9 +4,9 @@
 
 //
 // Description:
-//      NullTextContainer is an immutable empty TextContainer that contains 
-//      single collapsed Start/End position. This is primarily used internally 
-//      so parameter check is mostly replaced with debug assert.  
+//      NullTextContainer is an immutable empty TextContainer that contains
+//      single collapsed Start/End position. This is primarily used internally
+//      so parameter check is mostly replaced with debug assert.
 //
 
 namespace System.Windows.Documents
@@ -20,9 +20,9 @@ namespace System.Windows.Documents
 
     //=====================================================================
     /// <summary>
-    /// NullTextContainer is an immutable empty TextContainer that contains 
-    /// single collapsed Start/End position. This is primarily used internally 
-    /// so parameter check is mostly replaced with debug assert.  
+    /// NullTextContainer is an immutable empty TextContainer that contains
+    /// single collapsed Start/End position. This is primarily used internally
+    /// so parameter check is mostly replaced with debug assert.
     /// </summary>
     internal sealed class NullTextContainer : ITextContainer
     {
@@ -40,14 +40,14 @@ namespace System.Windows.Documents
             _end    = new NullTextPointer(this, LogicalDirection.Forward);
         }
         #endregion Constructors
-        
+
         //--------------------------------------------------------------------
         //
         // Public Methods
         //
         //---------------------------------------------------------------------
         #region Public Methods
-        
+
         //
         // This is readonly Text OM. All modification methods returns false
         //
@@ -112,9 +112,9 @@ namespace System.Windows.Documents
             return ((ITextPointer)position1.Handle0).GetOffsetToPosition((ITextPointer)position2.Handle0);
         }
 
-        int ITextContainer.GetTextInRun(StaticTextPointer position, LogicalDirection direction, char[] textBuffer, int startIndex, int count)
+        int ITextContainer.GetTextInRun(StaticTextPointer position, LogicalDirection direction, Span<char> textBuffer)
         {
-            return ((ITextPointer)position.Handle0).GetTextInRun(direction, textBuffer, startIndex, count);
+            return ((ITextPointer)position.Handle0).GetTextInRun(direction, textBuffer);
         }
 
         object ITextContainer.GetAdjacentElement(StaticTextPointer position, LogicalDirection direction)
@@ -153,7 +153,7 @@ namespace System.Windows.Documents
         }
 
         #endregion Public Methods
-  
+
         //--------------------------------------------------------------------
         //
         // Public Properties
@@ -233,7 +233,7 @@ namespace System.Windows.Documents
 
         // Optional text selection, always null for this ITextContainer.
         ITextSelection ITextContainer.TextSelection
-        { 
+        {
             get { return null; }
             set { Invariant.Assert(false, "NullTextContainer is never associated with a TextEditor/TextSelection!"); }
         }
@@ -278,13 +278,13 @@ namespace System.Windows.Documents
         }
 
         #endregion Public Properties
- 
+
         //--------------------------------------------------------------------
         //
         // Public Events
         //
         //---------------------------------------------------------------------
-        
+
         #region Public Events
 
         // 9/15/2004: these don't need to be "public",

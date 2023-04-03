@@ -1420,7 +1420,7 @@ namespace System.Windows.Documents
                 {
                     case TextPointerContext.Text:
                         char[] buffer = new char[bufLength];
-                        int copied = navigator.GetTextInRun(LogicalDirection.Backward, buffer, 0, buffer.Length);
+                        int copied = navigator.GetTextInRun(LogicalDirection.Backward, buffer);
                         Invariant.Assert(copied != 0);
                         navigator.MoveByOffset(0 - copied);
                         bufLength -= copied;
@@ -1472,7 +1472,7 @@ namespace System.Windows.Documents
                 {
                     case TextPointerContext.Text:
                         char[] buffer = new char[bufLength];
-                        int copied = navigator.GetTextInRun(LogicalDirection.Forward, buffer, 0, buffer.Length);
+                        int copied = navigator.GetTextInRun(LogicalDirection.Forward, buffer);
                         navigator.MoveByOffset(copied);
                         bufLength -= copied;
                         surrounding += new string(buffer, 0, copied);

@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-// 
+//
 // Description: A Component of TextEditor supporting spelling.
 //
 
@@ -264,9 +264,7 @@ namespace System.Windows.Documents
                 switch (position.GetPointerContext(direction))
                 {
                     case TextPointerContext.Text:
-                        char[] buffer = new char[1];
-                        position.GetTextInRun(direction, buffer, 0, 1);
-                        character = buffer[0];
+                        position.GetTextInRun(direction, new System.Span<char>(ref character));
                         foundText = true;
                         break;
 

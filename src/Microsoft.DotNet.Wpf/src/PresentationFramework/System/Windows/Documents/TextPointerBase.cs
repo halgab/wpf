@@ -64,7 +64,7 @@ namespace System.Windows.Documents
             textLength = position.GetTextRunLength(direction);
             text = new char[textLength];
 
-            getTextLength = position.GetTextInRun(direction, text, 0, textLength);
+            getTextLength = position.GetTextInRun(direction, text);
             Invariant.Assert(getTextLength == textLength, "textLengths returned from GetTextRunLength and GetTextInRun are innconsistent");
 
             return new string(text);
@@ -73,14 +73,14 @@ namespace System.Windows.Documents
         // Like GetText, excepts also accepts a limit parameter -- no text is returned past
         // this second position.
         // limit may be null, in which case it is ignored.
-        internal static int GetTextWithLimit(ITextPointer thisPointer, LogicalDirection direction, char[] textBuffer, int startIndex, int count, ITextPointer limit)
+        internal static int GetTextWithLimit(ITextPointer thisPointer, LogicalDirection direction, Span<char> textBuffer, ITextPointer limit)
         {
             int charsCopied;
 
             if (limit == null)
             {
                 // No limit, just call GetText.
-                charsCopied = thisPointer.GetTextInRun(direction, textBuffer, startIndex, count);
+                charsCopied = thisPointer.GetTextInRun(direction, textBuffer);
             }
             else if (direction == LogicalDirection.Forward && limit.CompareTo(thisPointer) <= 0)
             {
@@ -101,15 +101,15 @@ namespace System.Windows.Documents
                 // ok if the count too high, it will get truncated anyways.
                 if (direction == LogicalDirection.Forward)
                 {
-                    maxCount = Math.Min(count, thisPointer.GetOffsetToPosition(limit));
+                    maxCount = Math.Min(textBuffer.Length, thisPointer.GetOffsetToPosition(limit));
                 }
                 else
                 {
-                    maxCount = Math.Min(count, limit.GetOffsetToPosition(thisPointer));
+                    maxCount = Math.Min(textBuffer.Length, limit.GetOffsetToPosition(thisPointer));
                 }
-                maxCount = Math.Min(count, maxCount);
+                maxCount = Math.Min(textBuffer.Length, maxCount); // todo: useless?
 
-                charsCopied = thisPointer.GetTextInRun(direction, textBuffer, startIndex, maxCount);
+                charsCopied = thisPointer.GetTextInRun(direction, textBuffer.Slice(0, maxCount));
             }
 
             return charsCopied;
@@ -117,7 +117,7 @@ namespace System.Windows.Documents
 
 #if UNUSED
         // Returns true if the pointer is at an insertion position or next to
-        // any unicode code point.  A useful performance win over 
+        // any unicode code point.  A useful performance win over
         // IsAtInsertionPosition when only formatting scopes are important.
         internal static bool IsAtFormatNormalizedPosition(ITextPointer position)
         {
@@ -145,11 +145,11 @@ namespace System.Windows.Documents
 
             if (!isAtPotentialRunPosition)
             {
-                // Test for positions inside 
-                //  1. empty table cell 
+                // Test for positions inside
+                //  1. empty table cell
                 //  2. empty list item or
                 //  3. empty flow document
-                // They are a valid caret stop. 
+                // They are a valid caret stop.
                 // Editing operations are permitted at such positions since it is a potential insertion position.
                 isAtPotentialRunPosition = IsAtPotentialParagraphPosition(position);
             }
@@ -164,9 +164,9 @@ namespace System.Windows.Documents
         // position.
         internal static bool IsAtPotentialRunPosition(TextElement run)
         {
-            return 
-                run is Run && 
-                run.IsEmpty && 
+            return
+                run is Run &&
+                run.IsEmpty &&
                 IsAtPotentialRunPosition(run.ElementStart, run.ElementEnd);
         }
 
@@ -234,7 +234,7 @@ namespace System.Windows.Documents
             {
                 return
                     typeof(ListItem).IsAssignableFrom(parentType) ||
-                    typeof(TableCell).IsAssignableFrom(parentType);                    
+                    typeof(TableCell).IsAssignableFrom(parentType);
             }
             else if (backwardContext == TextPointerContext.None && forwardContext == TextPointerContext.None)
             {
@@ -317,7 +317,7 @@ namespace System.Windows.Documents
             ITextPointer navigator = position.CreatePointer();
             bool moved = false;
             Type elementType;
-            
+
             while (true)
             {
                 BorderingElementCategory category = GetBorderingElementCategory(navigator, LogicalDirection.Forward);
@@ -353,7 +353,7 @@ namespace System.Windows.Documents
                 }
 
 		// Move to next insertion position if we are done skipping a string of sequential UICs to get a
-		// valid selection start pointer. We need to make sure we land at a position that would be given 
+		// valid selection start pointer. We need to make sure we land at a position that would be given
 		// to this function had the UICs not been there. This ensures that we end up inside Runs that
 		// follow instead of before them, e.g. </Span><Run>|abc</Run> instead of |</Span><Run>abc</Run>.
                 elementType = navigator.GetElementType(LogicalDirection.Forward);
@@ -461,7 +461,7 @@ namespace System.Windows.Documents
         /// <param name="insideWordDirection">
         /// If insideWordDirection == LogicalDirection.Forward, returns true iff the
         /// position is at the beginning of a word.
-        /// 
+        ///
         /// If direction == LogicalDirection.Backward, returns true iff the
         /// position is at the end of a word.
         /// </param>
@@ -504,7 +504,7 @@ namespace System.Windows.Documents
         /// </summary>
         /// <remarks>
         /// If this TextPointer is between two words, the following word is returned.
-        /// 
+        ///
         /// The return value includes trailing whitespace, if any.
         /// </remarks>
         internal static TextSegment GetWordRange(ITextPointer thisPosition)
@@ -518,7 +518,7 @@ namespace System.Windows.Documents
         /// <remarks>
         /// If this TextPointer is between two words, direction specifies whether
         /// the preceeding or following word is returned.
-        /// 
+        ///
         /// The return value includes trailing whitespace, if any.
         /// </remarks>
         internal static TextSegment GetWordRange(ITextPointer thisPosition, LogicalDirection direction)
@@ -620,8 +620,8 @@ namespace System.Windows.Documents
         // </summary>
         internal static bool IsNextToPlainLineBreak(ITextPointer thisPosition, LogicalDirection direction)
         {
-            char[] textBuffer = new char[2];
-            int actualCount = thisPosition.GetTextInRun(direction, textBuffer, /*startIndex:*/0, /*count:*/2);
+            Span<char> textBuffer = stackalloc char[2];
+            int actualCount = thisPosition.GetTextInRun(direction, textBuffer);
 
             return
                 (actualCount == 1 && IsCharUnicodeNewLine(textBuffer[0]))
@@ -699,8 +699,8 @@ namespace System.Windows.Documents
                 return false;
             }
 
-            bool isAtLineWrappingPosition = position.LogicalDirection == LogicalDirection.Forward 
-                ? position.CompareTo(lineSegment.Start) == 0 
+            bool isAtLineWrappingPosition = position.LogicalDirection == LogicalDirection.Forward
+                ? position.CompareTo(lineSegment.Start) == 0
                 : position.CompareTo(lineSegment.End) == 0;
 
             return isAtLineWrappingPosition;
@@ -739,7 +739,7 @@ namespace System.Windows.Documents
                 return true;
             }
 
-            // Can you find a <Paragraph> start tag looking backwards? 
+            // Can you find a <Paragraph> start tag looking backwards?
             // Loop to skip multiple formatting opening tags, never crossing parent element boundary.
             while (pointer.GetPointerContext(LogicalDirection.Backward) == TextPointerContext.ElementStart)
             {
@@ -816,7 +816,7 @@ namespace System.Windows.Documents
 
             if (!position.IsAtInsertionPosition)
             {
-                if (!respectNonMeargeableInlineStart || 
+                if (!respectNonMeargeableInlineStart ||
                     (!IsAtNonMergeableInlineStart(position) && !IsAtNonMergeableInlineEnd(position)))
                 {
                     position.MoveToInsertionPosition(position.LogicalDirection);
@@ -921,7 +921,7 @@ namespace System.Windows.Documents
         }
 
         // Move to the closest insertion position, treating all unicode code points
-        // as valid insertion positions.  A useful performance win over 
+        // as valid insertion positions.  A useful performance win over
         // MoveToNextInsertionPosition when only formatting scopes are important.
         internal static bool MoveToFormatNormalizedPosition(ITextPointer thisNavigator, LogicalDirection direction)
         {
@@ -1363,12 +1363,12 @@ namespace System.Windows.Documents
         private static bool IsInsideCompoundSequence(ITextPointer position)
         {
             // OK, so we're surrounded by text runs (possibly empty), try getting a character
-            // in each direction -- it's OK to position the caret if there's no characters 
+            // in each direction -- it's OK to position the caret if there's no characters
             // before or after it
-            Char[] neighborhood = new char[2];
+            Span<char> neighborhood = stackalloc char[2];
 
-            if (position.GetTextInRun(LogicalDirection.Backward, neighborhood, 0, 1) == 1 &&
-                position.GetTextInRun(LogicalDirection.Forward, neighborhood, 1, 1) == 1)
+            if (position.GetTextInRun(LogicalDirection.Backward, neighborhood.Slice(0, 1)) == 1 &&
+                position.GetTextInRun(LogicalDirection.Forward, neighborhood.Slice(1)) == 1)
             {
                 if (Char.IsSurrogatePair(neighborhood[0], neighborhood[1]) ||
                     neighborhood[0] == '\r' && neighborhood[1] == '\n')
@@ -1430,7 +1430,7 @@ namespace System.Windows.Documents
                 preceedingCount += runLength;
 
                 navigator.MoveByOffset(-runLength);
-                navigator.GetTextInRun(LogicalDirection.Forward, preceedingText, SelectionWordBreaker.MinContextLength - preceedingCount, runLength);
+                navigator.GetTextInRun(LogicalDirection.Forward, preceedingText.AsSpan(SelectionWordBreaker.MinContextLength - preceedingCount, runLength));
 
                 if (preceedingCount == SelectionWordBreaker.MinContextLength)
                     break;
@@ -1447,7 +1447,7 @@ namespace System.Windows.Documents
             {
                 runLength = Math.Min(navigator.GetTextRunLength(LogicalDirection.Forward), SelectionWordBreaker.MinContextLength - followingCount);
 
-                navigator.GetTextInRun(LogicalDirection.Forward, followingText, followingCount, runLength);
+                navigator.GetTextInRun(LogicalDirection.Forward, followingText.AsSpan(followingCount, runLength));
 
                 followingCount += runLength;
 

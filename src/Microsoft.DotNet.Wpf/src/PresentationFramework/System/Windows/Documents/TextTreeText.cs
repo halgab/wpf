@@ -63,7 +63,7 @@ namespace System.Windows.Documents
 
         // Removes text from the block array.
         // consider merging blocks after the remove.  Not yet clear if
-        // this is desirable. 
+        // this is desirable.
         internal static void RemoveText(TextTreeRootTextBlock rootTextBlock, int offset, int count)
         {
             int firstBlockLocalOffset;
@@ -152,14 +152,14 @@ namespace System.Windows.Documents
 
             text = new char[count];
 
-            ReadText(rootTextBlock, offset, count, text, 0);
+            ReadText(rootTextBlock, offset, count, text);
             RemoveText(rootTextBlock, offset, count);
 
             return text;
         }
 
         // Read text in the block array.
-        internal static void ReadText(TextTreeRootTextBlock rootTextBlock, int offset, int count, char[] chars, int startIndex)
+        internal static void ReadText(TextTreeRootTextBlock rootTextBlock, int offset, int count, Span<char> chars)
         {
             TextTreeTextBlock block;
             int localOffset;
@@ -173,13 +173,13 @@ namespace System.Windows.Documents
                 while (true)
                 {
                     Invariant.Assert(block != null, "Caller asked for too much text!");
-                    blockCount = block.ReadText(localOffset, count, chars, startIndex);
+                    blockCount = block.ReadText(localOffset, count, chars);
                     localOffset = 0;
                     count -= blockCount;
                     if (count == 0)
                         break;
 
-                    startIndex += blockCount;
+                    chars = chars.Slice(blockCount);
                     block = (TextTreeTextBlock)block.GetNextNode();
                 }
             }
@@ -211,7 +211,7 @@ namespace System.Windows.Documents
         internal static void RemoveElementEdges(TextTreeRootTextBlock rootTextBlock, int offset, int symbolCount)
         {
             Invariant.Assert(symbolCount >= 2, "Element must span at least two symbols!"); // 2 element edges == 2 symbols.
-            
+
             if (symbolCount == 2)
             {
                 RemoveText(rootTextBlock, offset, 2);
@@ -345,7 +345,7 @@ namespace System.Windows.Documents
                     textEndOffset -= count;
                 }
             }
-            
+
             if (textOffset < textEndOffset)
             {
                 // Try adding just one block.

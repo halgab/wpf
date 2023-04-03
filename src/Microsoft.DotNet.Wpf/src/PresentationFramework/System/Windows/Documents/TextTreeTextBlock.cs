@@ -123,7 +123,7 @@ namespace System.Windows.Documents
                 Array.Copy(textChars, textStartIndex, _text, logicalOffset, count);
             }
 
-            // Update the gap.            
+            // Update the gap.
             _gapOffset += count;
             _gapSize -= count;
 
@@ -165,7 +165,7 @@ namespace System.Windows.Documents
                 Array.Copy(_text, _gapOffset, newBlock._text, _gapOffset, MaxBlockSize - _gapOffset);
                 Invariant.Assert(newBlock._gapOffset == 0);
                 newBlock._gapSize = _gapOffset;
-                
+
                 // Remove the left text from this block.
                 _gapSize = MaxBlockSize - _gapOffset;
 
@@ -208,26 +208,26 @@ namespace System.Windows.Documents
                     MoveGap(logicalOffset + count);
                 }
 
-                // Extend the gap to "remove" the text.                
+                // Extend the gap to "remove" the text.
                 precedingTextToRemoveCount = (logicalOffset + count == _gapOffset) ? count : _gapOffset - logicalOffset;
                 _gapOffset -= precedingTextToRemoveCount;
                 _gapSize += precedingTextToRemoveCount;
-                
+
                 // Adjust logicalOffset, count, so that they follow the gap below.
                 logicalOffset = _gapOffset;
                 count -= precedingTextToRemoveCount;
             }
-            
+
             // Make offset relative to text after the gap.
             logicalOffset += _gapSize;
-            
+
             // Remove text after the gap.
             if (logicalOffset > _gapOffset + _gapSize)
             {
                 // Shift text over.
                 MoveGap(logicalOffset - _gapSize);
             }
-            
+
             // Extend the gap to "remove" the text.
             _gapSize += count;
             Invariant.Assert(_gapOffset + _gapSize <= _text.Length);
@@ -236,21 +236,21 @@ namespace System.Windows.Documents
 
         // Copies text into a char array, returns the actual count of chars copied,
         // which may be smaller than count if the end of block is encountered.
-        internal int ReadText(int logicalOffset, int count, char []chars, int charsStartIndex)
+        internal int ReadText(int logicalOffset, int count, Span<char> chars)
         {
             int copyCount;
             int originalCount;
-            
+
             originalCount = count;
 
             // Read text before the gap.
             if (logicalOffset < _gapOffset)
             {
                 copyCount = Math.Min(count, _gapOffset - logicalOffset);
-                Array.Copy(_text, logicalOffset, chars, charsStartIndex, copyCount);
+                _text.AsSpan(logicalOffset, copyCount).CopyTo(chars);
                 count -= copyCount;
-                charsStartIndex += copyCount;
-                
+                chars = chars.Slice(copyCount);
+
                 // Adjust logicalOffset, so that it will follow the gap below.
                 logicalOffset = _gapOffset;
             }
@@ -259,16 +259,16 @@ namespace System.Windows.Documents
             {
                 // Make offset relative to text after the gap.
                 logicalOffset += _gapSize;
-                
+
                 // Read the text following the gap.
                 copyCount = Math.Min(count, _text.Length - logicalOffset);
-                Array.Copy(_text, logicalOffset, chars, charsStartIndex, copyCount);
+                _text.AsSpan(logicalOffset, copyCount).CopyTo(chars);
                 count -= copyCount;
             }
-            
+
             return (originalCount - count);
         }
-        
+
         #endregion Internal methods
 
         //------------------------------------------------------
@@ -431,7 +431,7 @@ namespace System.Windows.Documents
                 return (_text.Length - _gapSize);
             }
         }
-        
+
         // The number of additional chars this Block could accept before running out of space.
         internal int FreeCapacity
         {
@@ -441,7 +441,7 @@ namespace System.Windows.Documents
             }
         }
 
-        // The offset of the gap in this block.        
+        // The offset of the gap in this block.
         internal int GapOffset
         {
             get
@@ -466,7 +466,7 @@ namespace System.Windows.Documents
             int sourceOffset;
             int destinationOffset;
             int count;
-            
+
             if (offset < _gapOffset)
             {
                 sourceOffset = offset;
@@ -479,11 +479,11 @@ namespace System.Windows.Documents
                 destinationOffset = _gapOffset;
                 count = offset - _gapOffset;
             }
-            
+
             Array.Copy(_text, sourceOffset, _text, destinationOffset, count);
             _gapOffset = offset;
         }
- 
+
         #endregion Private methods
 
         //------------------------------------------------------
@@ -509,15 +509,15 @@ namespace System.Windows.Documents
 
         // An array of text in the block.
         private char []_text;
-        
+
         // Position of the buffer gap.
         private int _gapOffset;
-        
+
         // Size of the buffer gap.
         private int _gapSize;
 
         // Max block size, in chars.
-        internal const int MaxBlockSize = 4096;        
+        internal const int MaxBlockSize = 4096;
 
         #endregion Private Fields
     }

@@ -1714,7 +1714,7 @@ namespace System.Windows.Documents
                             runCount = Math.Min(runCount, _text.Length - _textLength);
                             runCount = Math.Min(runCount, position.GetOffsetToPosition(contextEnd));
 
-                            position.GetTextInRun(LogicalDirection.Forward, _text, _textLength, runCount);
+                            position.GetTextInRun(LogicalDirection.Forward, _text.AsSpan(_textLength, runCount));
 
                             for (i = _textLength; i < _textLength + runCount; i++)
                             {

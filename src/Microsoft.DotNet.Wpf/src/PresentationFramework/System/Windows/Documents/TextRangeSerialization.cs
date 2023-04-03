@@ -309,11 +309,11 @@ namespace System.Windows.Documents
                         int textLength = textReader.GetTextRunLength(LogicalDirection.Forward);
                         char[] text = new Char[textLength];
 
-                        textLength = TextPointerBase.GetTextWithLimit(textReader, LogicalDirection.Forward, text, 0, textLength, rangeEnd);
+                        textLength = TextPointerBase.GetTextWithLimit(textReader, LogicalDirection.Forward, text, rangeEnd);
 
                         // XmlWriter will throw an ArgumentException if text contains
                         // any invalid surrogates, so strip them out now.
-                        textLength = StripInvalidSurrogateChars(text, textLength);
+                        textLength = StripInvalidSurrogateChars(text.AsSpan(0, textLength));
 
                         xmlWriter.WriteChars(text, 0, textLength);
                         textReader.MoveToNextContextPosition(LogicalDirection.Forward);
@@ -686,7 +686,7 @@ namespace System.Windows.Documents
             // So alternative solution for whitespace preservation could be setting xml:space="preserve"
             // attribute to only empty runs - this would make our whitespace preservation more
             // narrowed...
-            
+
             // Investigate if this is really worth doing.
             // Currently we wildly preserve all whitespaces in TextRange, which can produce
             // a problem if somebody manually provides this "innocent" xaml (notice newline between paragraphs):
@@ -1766,14 +1766,12 @@ namespace System.Windows.Documents
         // characters past length are ignored (as if text.Length == length).
         //
         // Also removes nul characters
-        private static int StripInvalidSurrogateChars(char[] text, int length)
+        private static int StripInvalidSurrogateChars(Span<char> text)
         {
             int count;
 
-            Invariant.Assert(text.Length >= length, "Asserting that text.Length >= length");
-
             int i;
-            for (i = 0; i < length; i++)
+            for (i = 0; i < text.Length; i++)
             {
                 char testChar = text[i];
                 if (Char.IsHighSurrogate(testChar) || Char.IsLowSurrogate(testChar) || IsBadCode(testChar))
@@ -1782,20 +1780,20 @@ namespace System.Windows.Documents
                 }
             }
 
-            if (i == length)
+            if (i == text.Length)
             {
                 // No surrogates, early out.
-                count = length;
+                count = text.Length;
             }
             else
             {
                 count = i;
 
-                for (; i < length; i++)
+                for (; i < text.Length; i++)
                 {
                     if (Char.IsHighSurrogate(text[i]))
                     {
-                        if (i + 1 < length && Char.IsLowSurrogate(text[i + 1]))
+                        if (i + 1 < text.Length && Char.IsLowSurrogate(text[i + 1]))
                         {
                             // Valid surrogate encountered.
                             text[count] = text[i];

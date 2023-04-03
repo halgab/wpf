@@ -196,7 +196,7 @@ namespace System.Windows.Documents
 
             // Move position to character boundary (also respect atomics)
             // Shouldn't we do this on lower level - inside of TextPointer.GetWordRange ?
-            // Is Backward correct direction for nornalization? We really want that atomic would appear in forward direction... 
+            // Is Backward correct direction for nornalization? We really want that atomic would appear in forward direction...
             ITextPointer normalizedPosition = position.CreatePointer();
             normalizedPosition.MoveToInsertionPosition(LogicalDirection.Backward);
 
@@ -759,7 +759,7 @@ namespace System.Windows.Documents
             // Copy this text run into destination
             int runLength = navigator.GetTextRunLength(LogicalDirection.Forward);
             charArray = EnsureCharArraySize(charArray, runLength);
-            runLength = TextPointerBase.GetTextWithLimit(navigator, LogicalDirection.Forward, charArray, 0, runLength, endPosition);
+            runLength = TextPointerBase.GetTextWithLimit(navigator, LogicalDirection.Forward, charArray.AsSpan(0, runLength), endPosition);
             textBuffer.Append(charArray, 0, runLength);
             navigator.MoveToNextContextPosition(LogicalDirection.Forward);
         }
@@ -908,16 +908,16 @@ namespace System.Windows.Documents
                     markerText = "";
                     break;
                 case TextMarkerStyle.Disc :
-                    markerText = "\x2022"; // Bullet // not a "\x9f"; 
+                    markerText = "\x2022"; // Bullet // not a "\x9f";
                     break;
                 case TextMarkerStyle.Circle :
-                    markerText = "\x25CB"; // White Circle // not a "\xa1"; 
+                    markerText = "\x25CB"; // White Circle // not a "\xa1";
                     break;
                 case TextMarkerStyle.Square :
-                    markerText = "\x25A1"; // White Box // not a "\x71"; 
+                    markerText = "\x25A1"; // White Box // not a "\x71";
                     break;
                 case TextMarkerStyle.Box :
-                    markerText = "\x25A0"; // Black Box // not a "\xa7"; 
+                    markerText = "\x25A0"; // Black Box // not a "\xa7";
                     break;
 
                 case TextMarkerStyle.Decimal:
@@ -960,7 +960,7 @@ namespace System.Windows.Documents
 
         private static string[][] RomanNumerics = new string[][]
         {
-            new string[] { "m??", "cdm", "xlc", "ivx" }, 
+            new string[] { "m??", "cdm", "xlc", "ivx" },
             new string[] { "M??", "CDM", "XLC", "IVX" }
         };
 
@@ -1077,31 +1077,31 @@ namespace System.Windows.Documents
         /// <remarks>
         /// Roman number is 1-based. The Roman numeric string is a series of symbols. Following
         /// is the list of symbols and its value.
-        /// 
+        ///
         ///     Symbol      Value
         ///         I           1
-        ///         V           5  
+        ///         V           5
         ///         X          10
         ///         L          50
         ///         C         100
         ///         D         500
         ///         M        1000
-        /// 
+        ///
         /// The rule of Roman number prohibits the use of more than 3 consecutive identical symbol
         /// but using subtraction of symbol standing for multiples of 10, so the value 4 is written
-        /// as IV (5-1) rather than IIII. 
-        /// 
-        /// Due to the writing rule and the fact that the symbol represents not the numeral digit 
+        /// as IV (5-1) rather than IIII.
+        ///
+        /// Due to the writing rule and the fact that the symbol represents not the numeral digit
         /// but the value of the number. Roman number system cannot represent value larger than 3999.
-        /// 
+        ///
         /// See, http://www.ccsn.nevada.edu/math/ancient_systems.htm
-        /// 
-        /// However, there exists a more relaxing use of Roman numbers to represent values 4000 and  
+        ///
+        /// However, there exists a more relaxing use of Roman numbers to represent values 4000 and
         /// 4999 by using 4 consecutive M. The value 4999 is than written as 'MMMMCMXCIX'. Such use
         /// however is not widely accepted.
-        /// 
+        ///
         /// See, http://www.guernsey.net/~sgibbs/roman.html
-        /// 
+        ///
         /// For values larger than 3999, an overscore is used on the symbol to indicate 1000 multiplication.
         ///                                    ___
         /// So, value 7000 would be written as VII. This writing rule has a fair amount of disagreement
@@ -1109,15 +1109,15 @@ namespace System.Windows.Documents
         /// need for large numbers during their time. Furthermore, accepting this writing rule just
         /// for the sake of being able to write larger number would create a new limitation of the values
         /// greater than 3,999,999. Unicode 4.0 does not encode these overscore symbols.
-        /// 
+        ///
         /// See, http://www.gwydir.demon.co.uk/jo/roman/number.htm
         ///      http://www.novaroma.org/via_romana/numbers.html
-        /// 
+        ///
         /// Implementation-wise, IE adopts a general limitation of 3999 and simply convert the value
         /// into a regular numeric form.
-        /// 
+        ///
         /// We'll follow the mainstream and adopt the 3999 limit. The fallback would also do would IE does.
-        /// 
+        ///
         /// </remarks>
         private static string ConvertNumberToRomanString(
             int number,
@@ -1225,7 +1225,7 @@ namespace System.Windows.Documents
                 (thisRange.Start.CompareTo(thisRange.End) == 0),
                 "Range emptiness assumes using one instance of TextPointer for both start and end");
 
-            return (thisRange._TextSegments.Count == 1 && 
+            return (thisRange._TextSegments.Count == 1 &&
                  (object)thisRange._TextSegments[0].Start == (object)thisRange._TextSegments[0].End);
         }
 
@@ -1307,20 +1307,20 @@ namespace System.Windows.Documents
                 // Delete content covered by this range
                 if (!thisRange.IsEmpty)
                 {
-                    if (thisRange.Start is TextPointer && 
-                        ((TextPointer)thisRange.Start).Parent == ((TextPointer)thisRange.End).Parent && 
-                        ((TextPointer)thisRange.Start).Parent is Run && 
+                    if (thisRange.Start is TextPointer &&
+                        ((TextPointer)thisRange.Start).Parent == ((TextPointer)thisRange.End).Parent &&
+                        ((TextPointer)thisRange.Start).Parent is Run &&
                         textData.Length > 0)
                     {
-                        // When textrange start/end are parented by the same Run, we can optimize 
-                        // and delete content without any checks. 
+                        // When textrange start/end are parented by the same Run, we can optimize
+                        // and delete content without any checks.
                         //
                         // Note that NOT doing so has a serious side effect in this case.
                         // Low-level code in TextRangeEdit does not preserve an empty run
-                        // with no formatting properties after deletion. 
-                        // We dont want to loose the empty Run, 
+                        // with no formatting properties after deletion.
+                        // We dont want to loose the empty Run,
                         // when we are just about to set the range text to non-empty string.
-                        // Otherwise, newly inserted text might have undesirable formatting properties 
+                        // Otherwise, newly inserted text might have undesirable formatting properties
                         // applied due to an insertion position within an adjacent Run.
 
                         if (thisRange.Start.GetPointerContext(LogicalDirection.Backward) == TextPointerContext.Text &&
@@ -1406,9 +1406,9 @@ namespace System.Windows.Documents
                             {
                                 if (insertionPosition.HasNonMergeableInlineAncestor)
                                 {
-                                    // We cannot split a Hyperlink or other non-mergeable Inline element, 
+                                    // We cannot split a Hyperlink or other non-mergeable Inline element,
                                     // so insert a space character instead (similar to embedded object).
-                                    // Note that this means, SetText would loose 
+                                    // Note that this means, SetText would loose
                                     // paragraph break information in this case.
                                     insertionPosition.InsertTextInRun(" ");
                                 }
@@ -1735,7 +1735,7 @@ namespace System.Windows.Documents
                 {
                     start = GetNormalizedPosition(thisRange, start, start.LogicalDirection);
                     end = start;
-                } 
+                }
             }
             else
             {
@@ -2002,7 +2002,7 @@ namespace System.Windows.Documents
         }
 
         // Implementation body of range Select method
-        // When the range is being built for the very first time OR a table range is being rebuilt during normalization, 
+        // When the range is being built for the very first time OR a table range is being rebuilt during normalization,
         // we do not fire any range notifications.
         // NOTE: Because this method is called from NormalizeRange method we should totally avoid calling
         // any ITextRange methods involving normalization (such as Start/End)
@@ -2017,9 +2017,9 @@ namespace System.Windows.Documents
             if (position1 is TextPointer)
             {
                 textSegments = TextRangeEditTables.BuildTableRange(
-                    /*anchorPosition:*/(TextPointer)position1, 
-                    /*movingPosition:*/(TextPointer)position2, 
-                    includeCellAtMovingPosition, 
+                    /*anchorPosition:*/(TextPointer)position1,
+                    /*movingPosition:*/(TextPointer)position2,
+                    includeCellAtMovingPosition,
                     out isTableCellRange);
             }
             else
@@ -2074,9 +2074,9 @@ namespace System.Windows.Documents
                         // position1/position2.
                         // Note: we use includeCellAtMovingPosition=false here because the movingPosition is taken from a constructed table range, not from input
                         textSegments = TextRangeEditTables.BuildTableRange(
-                            /*anchorPosition:*/(TextPointer)finalStart, 
-                            /*movingPosition:*/(TextPointer)finalEnd, 
-                            /*includeCellAtMovingPosition:*/false, 
+                            /*anchorPosition:*/(TextPointer)finalStart,
+                            /*movingPosition:*/(TextPointer)finalEnd,
+                            /*includeCellAtMovingPosition:*/false,
                             out isTableCellRange);
                         if (textSegments != null)
                         {
@@ -2100,7 +2100,7 @@ namespace System.Windows.Documents
 
         /// <summary>
         /// Raises the Changed event for this range.
-        /// 
+        ///
         /// It must be called within a BeginChange/EndChange
         /// block.
         /// </summary>

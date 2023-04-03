@@ -370,7 +370,7 @@ namespace MS.Internal.Text
             // Copy characters from text run into buffer. Note the actual number of characters copied,
             // which may be different than the buffer's length. Buffer length only specifies the maximum
             // number of characters
-            int charactersCopied = position.GetTextInRun(LogicalDirection.Forward, textBuffer, 0, textBuffer.Length);
+            int charactersCopied = position.GetTextInRun(LogicalDirection.Forward, textBuffer);
 
             // Create text run, using characters copied as length
             return new TextCharacters(textBuffer, 0, charactersCopied, textProps);

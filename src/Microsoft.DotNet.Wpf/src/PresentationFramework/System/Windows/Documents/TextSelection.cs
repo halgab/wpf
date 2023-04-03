@@ -339,7 +339,7 @@ namespace System.Windows.Documents
                     isBlinkEnabled = true;
                     isSelectionActive = true;
                 }
-                else if (uiScope.IsFocused && 
+                else if (uiScope.IsFocused &&
                          ((IsRootElement(FocusManager.GetFocusScope(uiScope)) && IsFocusWithinRoot()) || // either UiScope root window has keyboard focus
                           _textEditor.IsContextMenuOpen))// or UiScope has a context menu open
                 {
@@ -362,9 +362,9 @@ namespace System.Windows.Documents
                 if (isSelectionActive)
                 {
                     // Update the TLS first, so that EnsureCaret is working in
-                    // the correct context. Please note that TLS is only relevant 
-                    // when selection is active and the caret is showing. If the 
-                    // Adorner is only meant to render the selection highlight then 
+                    // the correct context. Please note that TLS is only relevant
+                    // when selection is active and the caret is showing. If the
+                    // Adorner is only meant to render the selection highlight then
                     // the TLS is irrelavant.
                     SetThreadSelection();
                 }
@@ -498,11 +498,11 @@ namespace System.Windows.Documents
                     // There are some tags around, and we are not allowed to choose a side near to space.
                     // So we need to perform some content analysis.
 
-                    char[] charBuffer = new char[1];
+                    char charInRun = default;
 
                     if (caretPosition.GetPointerContext(direction) == TextPointerContext.Text &&
-                        caretPosition.GetTextInRun(direction, charBuffer, 0, 1) == 1 &&
-                        Char.IsWhiteSpace(charBuffer[0]))
+                        caretPosition.GetTextInRun(direction, new Span<char>(ref charInRun)) == 1 &&
+                        char.IsWhiteSpace(charInRun))
                     {
                         LogicalDirection oppositeDirection = direction == LogicalDirection.Forward ? LogicalDirection.Backward : LogicalDirection.Forward;
 
@@ -514,8 +514,8 @@ namespace System.Windows.Documents
                         if (moved &&
                             initialFlowDirection == (FlowDirection)caretPosition.GetValue(FrameworkElement.FlowDirectionProperty) &&
                             (caretPosition.GetPointerContext(oppositeDirection) != TextPointerContext.Text ||
-                             caretPosition.GetTextInRun(oppositeDirection, charBuffer, 0, 1) != 1 ||
-                             !Char.IsWhiteSpace(charBuffer[0])))
+                             caretPosition.GetTextInRun(oppositeDirection, new Span<char>(ref charInRun)) != 1 ||
+                             !char.IsWhiteSpace(charInRun)))
                         {
                             // In the opposite direction we have a non-space
                             // character. So we choose that direction
@@ -1797,7 +1797,7 @@ namespace System.Windows.Documents
         {
             ITextContainer textContainer = ((ITextSelection)this).Start.TextContainer;
 
-            
+
             // If we are using the adorner, then we should not instantiate highlight layers
             // for TextContainer or PasswordTextContainer.
             if (FrameworkAppContextSwitches.UseAdornerForTextboxSelectionRendering
@@ -2439,8 +2439,8 @@ namespace System.Windows.Documents
             }
             else
             {
-                // Please note that it is important to set the IsSelectionActive property before 
-                // calling SetBlinking. This is because SetBlinking calls Win32CreateCaret & 
+                // Please note that it is important to set the IsSelectionActive property before
+                // calling SetBlinking. This is because SetBlinking calls Win32CreateCaret &
                 // Win32DestroyCaret both of which meaningfully use this flag.
                 _caretElement.IsSelectionActive = isSelectionActive;
                 _caretElement.SetBlinking(isBlinkEnabled);

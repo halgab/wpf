@@ -115,7 +115,7 @@ namespace System.Windows.Controls
 
             if (dcp > 0)
             {
-                // Create TextPointer at dcp 
+                // Create TextPointer at dcp
                 ITextPointer position = _owner.Host.TextContainer.CreatePointerAtOffset(dcp, LogicalDirection.Backward);
 
                 // Return text in run. If it is at start of TextContainer this will return an empty string.
@@ -123,7 +123,7 @@ namespace System.Windows.Controls
                 // preceding sentence, which we approximate with a 128 char limit.
                 int runLength = Math.Min(128, position.GetTextRunLength(LogicalDirection.Backward));
                 char[] text = new char[runLength];
-                position.GetTextInRun(LogicalDirection.Backward, text, 0, runLength);
+                position.GetTextInRun(LogicalDirection.Backward, text);
 
                 precedingText = new CharacterBufferRange(text, 0, runLength);
                 culture = DynamicPropertyReader.GetCultureInfo((Control)_owner.Host);
@@ -134,7 +134,7 @@ namespace System.Windows.Controls
         }
 
         /// <summary>
-        /// TextFormatter to map a text source character index to a text effect character index        
+        /// TextFormatter to map a text source character index to a text effect character index
         /// </summary>
         /// <param name="textSourceCharacterIndex"> text source character index </param>
         /// <returns> the text effect index corresponding to the text effect character index </returns>
@@ -167,14 +167,14 @@ namespace System.Windows.Controls
         /// Unfortunately, Line Services cannot guarantee that once a line
         /// has been measured, measuring the same content with the actual line
         /// width will produce the same line.
-        /// 
+        ///
         /// For example, suppose we format dcp 0 with paragraphWidth = 100.
         /// Suppose this results in a line from dcp 0 - 10, with width = 95.
         ///
         /// We would expect that a call to FormatLine with dcp = 0,
         /// paragraphWidth = 95 would result in the same 10 char line.
         /// But in practice it might return a 9 char line.
-        /// 
+        ///
         /// The workaround is to pass in an explicit formatting width across
         /// multiple calls, even if the paragraphWidth changes.
         /// </remarks>
@@ -198,7 +198,7 @@ namespace System.Windows.Controls
         }
 
         /// <summary>
-        /// Create and return visual node for the line. 
+        /// Create and return visual node for the line.
         /// </summary>
         internal TextBoxLineDrawingVisual CreateVisual(Geometry selectionGeometry)
         {
@@ -250,7 +250,7 @@ namespace System.Windows.Controls
         }
 
         /// <summary>
-        /// Returns a collection of rectangles (Rect) that form the bounds of the region 
+        /// Returns a collection of rectangles (Rect) that form the bounds of the region
         /// specified between the start and end points.
         /// </summary>
         /// <param name="cp">Starting point of the region</param>
@@ -258,8 +258,8 @@ namespace System.Windows.Controls
         /// <param name="xOffset">Offset of line in x direction, to be added to line bounds</param>
         /// <param name="yOffset">Offset of line in y direction, to be added to line bounds</param>
         /// <remarks>
-        /// This function calls GetTextBounds for the line, and then checks if there are 
-        /// text run bounds. If they exist, it uses those as the bounding rectangles. If not, 
+        /// This function calls GetTextBounds for the line, and then checks if there are
+        /// text run bounds. If they exist, it uses those as the bounding rectangles. If not,
         /// it returns the rectangle for the first (and only) element of the text bounds.
         /// </remarks>
         internal List<Rect> GetRangeBounds(int cp, int cch, double xOffset, double yOffset)
@@ -455,7 +455,7 @@ namespace System.Windows.Controls
 
             var textEditor = position.TextContainer.TextSelection?.TextEditor;
 
-            
+
             // Apply selection highlighting if needed
             if ((textEditor?.TextView?.RendersOwnSelection == true)
                 && highlights.GetHighlightValue(position, LogicalDirection.Forward, typeof(TextSelection)) != DependencyProperty.UnsetValue)
@@ -485,9 +485,9 @@ namespace System.Windows.Controls
             // Get character buffer for the text run.
             char[] textBuffer = new char[position.GetOffsetToPosition(endOfRunPosition)];
 
-            // Copy characters from text run into buffer. Since we are dealing with plain text content, 
+            // Copy characters from text run into buffer. Since we are dealing with plain text content,
             // we expect to get all the characters from position to endOfRunPosition.
-            int charactersCopied = position.GetTextInRun(LogicalDirection.Forward, textBuffer, 0, textBuffer.Length);
+            int charactersCopied = position.GetTextInRun(LogicalDirection.Forward, textBuffer);
             Invariant.Assert(charactersCopied == textBuffer.Length);
 
             // Create text run, using characters copied as length

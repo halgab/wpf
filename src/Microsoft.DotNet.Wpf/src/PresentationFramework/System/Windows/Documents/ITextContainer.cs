@@ -50,7 +50,7 @@ namespace System.Windows.Documents
 
         int GetOffsetToPosition(StaticTextPointer position1, StaticTextPointer position2);
 
-        int GetTextInRun(StaticTextPointer position, LogicalDirection direction, char[] textBuffer, int startIndex, int count);
+        int GetTextInRun(StaticTextPointer position, LogicalDirection direction, Span<char> textBuffer);
 
         object GetAdjacentElement(StaticTextPointer position, LogicalDirection direction);
 
@@ -104,7 +104,7 @@ namespace System.Windows.Documents
         /// <remarks>
         /// The returned ITextPointer has LogicalDirection.Forward gravity.
         /// </remarks>
-        ITextPointer End { get; } 
+        ITextPointer End { get; }
 
         /// <summary>
         /// The object containing this TextContainer, from which property

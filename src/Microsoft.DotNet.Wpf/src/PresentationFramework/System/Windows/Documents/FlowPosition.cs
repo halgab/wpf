@@ -4,7 +4,7 @@
 
 //
 // Description:
-//      FlowPosition represents a navigational position in a document's content flow. 
+//      FlowPosition represents a navigational position in a document's content flow.
 //
 
 namespace System.Windows.Documents
@@ -16,16 +16,16 @@ namespace System.Windows.Documents
     using System.Globalization;
     using System.Windows.Controls;
 
-    
+
 
     //=====================================================================
     /// <summary>
-    /// FlowPosition represents a navigational position in a document's content flow. 
+    /// FlowPosition represents a navigational position in a document's content flow.
     /// </summary>
     /// <remarks>
-    /// A FlowPosition is represented by a FlowNode in the backing store and offset within 
+    /// A FlowPosition is represented by a FlowNode in the backing store and offset within
     /// the flow node (starts with 0, on the left side of the symbol). e.g.
-    ///         &lt;P&gt;     H   A   L     &lt;/P&gt;      
+    ///         &lt;P&gt;     H   A   L     &lt;/P&gt;
     ///        0          1 0   1   2   3  0          1
     /// </remarks>
     internal sealed class FlowPosition : IComparable
@@ -45,13 +45,13 @@ namespace System.Windows.Documents
             _offset     = offset;
         }
         #endregion Constructors
-        
+
         //--------------------------------------------------------------------
         //
         // Public Methods
         //
         //---------------------------------------------------------------------
-          
+
         #region Public Methods
         /// <summary>
         /// Create a shallow copy of this objet
@@ -83,7 +83,7 @@ namespace System.Windows.Documents
 
         /// <summary>
         /// Compute hash code. A flow position is predominantly identified
-        /// by its flow node and the offset. 
+        /// by its flow node and the offset.
         /// </summary>
         /// <returns>int - hash code</returns>
         public override int GetHashCode()
@@ -125,14 +125,14 @@ namespace System.Windows.Documents
         #region Internal Methods
 
         //--------------------------------------------------------------------
-        // Text OM Helper 
+        // Text OM Helper
         //---------------------------------------------------------------------
         #region Text OM Helper
         // Returns the count of symbols between pos1 and pos2
         internal int GetDistance(FlowPosition flow)
         {
             Debug.Assert(flow != null);
-            // if both clings to the same flow node, simply 
+            // if both clings to the same flow node, simply
             // compare the offset
             if (_flowNode.Equals(flow._flowNode))
             {
@@ -143,7 +143,7 @@ namespace System.Windows.Documents
             // Make sure scanning from low to high flow order
             int np = _OverlapAwareCompare(flow);
             FlowPosition flowScan, flowEnd;
-            if (np == -1) 
+            if (np == -1)
             {
                 // scan forward
                 flowScan = (FlowPosition)this.Clone();
@@ -169,7 +169,7 @@ namespace System.Windows.Documents
                 int scan = flowScan._vScan(LogicalDirection.Forward, -1);
 
                 distance += scan;
-            } 
+            }
             return np * (-1) * distance;
         }
 
@@ -181,7 +181,7 @@ namespace System.Windows.Documents
             Debug.Assert(dir == LogicalDirection.Forward || dir == LogicalDirection.Backward);
             return _vGetSymbolType(dir);
         }
-            
+
 
         // returns remaining text length on dir
         internal int GetTextRunLength(LogicalDirection dir)
@@ -200,14 +200,14 @@ namespace System.Windows.Documents
         }
 
 
-        // Get Text until end-of-run or maxLength/limit is hit. 
-        internal int GetTextInRun(LogicalDirection dir, int maxLength, char[] chars, int startIndex)
+        // Get Text until end-of-run or maxLength/limit is hit.
+        internal int GetTextInRun(LogicalDirection dir, Span<char> chars)
         {
             Debug.Assert(GetPointerContext(dir) == TextPointerContext.Text);
 
             // make sure the position is clinged to text run
             FlowPosition flow = GetClingPosition(dir);
-            
+
             int runLength = flow._NodeLength;
             int remainingLength;
             if (dir == LogicalDirection.Forward)
@@ -218,22 +218,22 @@ namespace System.Windows.Documents
             {
                 remainingLength = flow._offset;
             }
-            maxLength = Math.Min(maxLength, remainingLength);
+            int maxLength = Math.Min(chars.Length, remainingLength);
 
             //
-            // THIS IS VERY INEFFICIENT! 
-            // We need to add a function in FixedTextBuilder that 
-            // allows copying segement of the flow node text run directly. 
+            // THIS IS VERY INEFFICIENT!
+            // We need to add a function in FixedTextBuilder that
+            // allows copying segement of the flow node text run directly.
             //
 
             string text = _container.FixedTextBuilder.GetFlowText(flow._flowNode);
             if (dir == LogicalDirection.Forward)
             {
-                Array.Copy(text.ToCharArray(flow._offset, maxLength), 0, chars, startIndex, maxLength);
+                text.AsSpan(flow._offset, maxLength).CopyTo(chars);
             }
             else
             {
-                Array.Copy(text.ToCharArray(flow._offset - maxLength, maxLength), 0, chars, startIndex, maxLength);
+                text.AsSpan(flow._offset - maxLength, maxLength).CopyTo(chars);
             }
             return maxLength;
         }
@@ -245,7 +245,7 @@ namespace System.Windows.Documents
             FlowPosition flow = GetClingPosition(dir);
             FlowNodeType type = flow._flowNode.Type;
             Debug.Assert(type == FlowNodeType.Object || type == FlowNodeType.Noop || type == FlowNodeType.Start || type == FlowNodeType.End);
-            
+
             if (type == FlowNodeType.Noop)
             {
                 return String.Empty;
@@ -280,8 +280,8 @@ namespace System.Windows.Documents
         }
 
 
-        // Immediate scoping element. If no element scops the position, 
-        // returns the container element. 
+        // Immediate scoping element. If no element scops the position,
+        // returns the container element.
         internal FixedElement GetScopingElement()
         {
             FlowPosition flowScan = (FlowPosition)this.Clone();
@@ -306,7 +306,7 @@ namespace System.Windows.Documents
                 }
 
                 flowScan.Move(LogicalDirection.Backward);
-            } 
+            }
             return _container.ContainerElement;
         }
 
@@ -497,7 +497,7 @@ namespace System.Windows.Documents
             }
         }
 
-        // If th_Is position _Is symbol 
+        // If th_Is position _Is symbol
         internal bool IsSymbol
         {
             get
@@ -533,7 +533,7 @@ namespace System.Windows.Documents
                 return this._flowNode;
             }
         }
-        
+
         #endregion Internal Properties
 
         //--------------------------------------------------------------------
@@ -544,11 +544,11 @@ namespace System.Windows.Documents
 
         #region Private Methods
         //--------------------------------------------------------------------
-        //  Helper functions that could result in de-virtualization 
+        //  Helper functions that could result in de-virtualization
         //---------------------------------------------------------------------
 
         // scan one node forward, return characters/symbols passed
-        // limit < 0 means scan entire node. 
+        // limit < 0 means scan entire node.
         private int _vScan(LogicalDirection dir, int limit)
         {
             if (limit == 0)
@@ -655,7 +655,7 @@ namespace System.Windows.Documents
 
         //--------------------------------------------------------------------
         // Helper functions that have raw access to backing store and provided
-        // a non-virtualied view on top of virtualized content. 
+        // a non-virtualied view on top of virtualized content.
         //---------------------------------------------------------------------
 
         // return null if no previous node
@@ -708,7 +708,7 @@ namespace System.Windows.Documents
 
 
         //--------------------------------------------------------------------
-        // Helper functions 
+        // Helper functions
         //---------------------------------------------------------------------
 
         // see if the two FlowPosition are indeed same position
@@ -761,7 +761,7 @@ namespace System.Windows.Documents
         }
 
 
-        // Convert Flow Node Type to TextPointerContext 
+        // Convert Flow Node Type to TextPointerContext
         private TextPointerContext _FlowNodeTypeToTextSymbol(FlowNodeType t)
         {
             switch (t)

@@ -109,9 +109,9 @@ namespace System.Windows.Documents
         /// <see cref="ITextPointer.GetTextInRun(LogicalDirection,char[],int,int)"/>
         /// </summary>
         /// <remarks>Only reutrn uninterrupted runs of text</remarks>
-        int ITextPointer.GetTextInRun(LogicalDirection direction, char[] textBuffer, int startIndex, int count)
+        int ITextPointer.GetTextInRun(LogicalDirection direction, Span<char> textBuffer)
         {
-            return DocumentSequenceTextPointer.GetTextInRun(this, direction, textBuffer, startIndex, count);
+            return DocumentSequenceTextPointer.GetTextInRun(this, direction, textBuffer);
         }
 
         /// <summary>
@@ -272,7 +272,7 @@ namespace System.Windows.Documents
         }
 
         // Returns the closest insertion position, treating all unicode code points
-        // as valid insertion positions.  A useful performance win over 
+        // as valid insertion positions.  A useful performance win over
         // GetNextInsertionPosition when only formatting scopes are important.
         ITextPointer ITextPointer.GetFormatNormalizedPosition(LogicalDirection direction)
         {
@@ -363,11 +363,11 @@ namespace System.Windows.Documents
                 Invariant.Assert(((ITextPointer)this).HasValidLayout);
                 ITextView textView = ((ITextPointer)this).TextContainer.TextView;
                 bool isAtCaretUnitBoundary = textView.IsAtCaretUnitBoundary(this);
-                
+
                 if (!isAtCaretUnitBoundary && ((ITextPointer)this).LogicalDirection == LogicalDirection.Backward)
                 {
                     // In MIL Text and TextView worlds, a position at trailing edge of a newline (with backward gravity)
-                    // is not an allowed caret stop. 
+                    // is not an allowed caret stop.
                     // However, in TextPointer world we must allow such a position to be a valid insertion position,
                     // since it breaks textrange normalization for empty ranges.
                     // Hence, we need to check for TextView.IsAtCaretUnitBoundary in reverse direction below.
@@ -461,7 +461,7 @@ namespace System.Windows.Documents
         int ITextPointer.MoveByOffset(int offset)
         {
             if (_isFrozen) throw new InvalidOperationException(SR.TextPositionIsFrozen);
-            
+
             if (DocumentSequenceTextPointer.iScan(this, offset))
             {
                 return offset;
@@ -658,32 +658,11 @@ namespace System.Windows.Documents
         /// <see cref="ITextPointer.GetTextInRun(LogicalDirection,char[],int,int)"/>
         /// </summary>
         /// <remarks>Only reutrn uninterrupted runs of text</remarks>
-        public static int GetTextInRun(DocumentSequenceTextPointer thisTp, LogicalDirection direction, char[] textBuffer, int startIndex, int count)
+        public static int GetTextInRun(DocumentSequenceTextPointer thisTp, LogicalDirection direction, Span<char> textBuffer)
         {
             ValidationHelper.VerifyDirection(direction, "direction");
 
-            if (textBuffer == null)
-            {
-                throw new ArgumentNullException("textBuffer");
-            }
-            if (startIndex < 0)
-            {
-                throw new ArgumentException(SR.Format(SR.NegativeValue, "startIndex"));
-            }
-            if (startIndex > textBuffer.Length)
-            {
-                throw new ArgumentException(SR.Format(SR.StartIndexExceedsBufferSize, startIndex, textBuffer.Length));
-            }
-            if (count < 0)
-            {
-                throw new ArgumentException(SR.Format(SR.NegativeValue, "count"));
-            }
-            if (count > textBuffer.Length - startIndex)
-            {
-                throw new ArgumentException(SR.Format(SR.MaxLengthExceedsBufferSize, count, textBuffer.Length, startIndex));
-            }
-
-            return thisTp.ChildPointer.GetTextInRun(direction, textBuffer, startIndex, count);
+            return thisTp.ChildPointer.GetTextInRun(direction, textBuffer);
         }
 
         /// <summary>

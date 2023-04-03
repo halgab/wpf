@@ -781,7 +781,7 @@ namespace System.Windows.Documents
         /// TextPointer in the specified direction.  Similarly, text will only
         /// be returned up to the next non-text symbol.
         /// </remarks>
-        public int GetTextInRun(LogicalDirection direction, char[] textBuffer, int startIndex, int count)
+        public int GetTextInRun(LogicalDirection direction, Span<char> textBuffer)
         {
             TextTreeTextNode textNode;
 
@@ -791,7 +791,7 @@ namespace System.Windows.Documents
 
             textNode = GetAdjacentTextNodeSibling(direction);
 
-            return textNode == null ? 0 : GetTextInRun(_tree, GetSymbolOffset(), textNode, -1, direction, textBuffer, startIndex, count);
+            return textNode == null ? 0 : GetTextInRun(_tree, GetSymbolOffset(), textNode, -1, direction, textBuffer);
         }
 
         /// <summary>
@@ -1759,30 +1759,15 @@ namespace System.Windows.Documents
             return ancestor as ListItem;
         }
 
-        internal static int GetTextInRun(TextContainer textContainer, int symbolOffset, TextTreeTextNode textNode, int nodeOffset, LogicalDirection direction, char[] textBuffer, int startIndex, int count)
+        internal static int GetTextInRun(TextContainer textContainer, int symbolOffset, TextTreeTextNode textNode, int nodeOffset, LogicalDirection direction, Span<char> textBuffer)
         {
+            int count = textBuffer.Length;
             int skipCount;
             int finalCount;
 
             if (textBuffer == null)
             {
                 throw new ArgumentNullException("textBuffer");
-            }
-            if (startIndex < 0)
-            {
-                throw new ArgumentException(SR.Format(SR.NegativeValue, "startIndex"));
-            }
-            if (startIndex > textBuffer.Length)
-            {
-                throw new ArgumentException(SR.Format(SR.StartIndexExceedsBufferSize, startIndex, textBuffer.Length));
-            }
-            if (count < 0)
-            {
-                throw new ArgumentException(SR.Format(SR.NegativeValue, "count"));
-            }
-            if (count > textBuffer.Length - startIndex)
-            {
-                throw new ArgumentException(SR.Format(SR.MaxLengthExceedsBufferSize, count, textBuffer.Length, startIndex));
             }
             Invariant.Assert(textNode != null, "textNode is expected to be non-null");
 
@@ -1822,7 +1807,7 @@ namespace System.Windows.Documents
 
             if (finalCount > 0) // We may not have allocated textContainer.RootTextBlock if no text was ever inserted.
             {
-                TextTreeText.ReadText(textContainer.RootTextBlock, symbolOffset, finalCount, textBuffer, startIndex);
+                TextTreeText.ReadText(textContainer.RootTextBlock, symbolOffset, finalCount, textBuffer);
             }
 
             return finalCount;
@@ -2419,9 +2404,9 @@ namespace System.Windows.Documents
             return TextPointerBase.GetTextInRun(this, direction);
         }
 
-        int ITextPointer.GetTextInRun(LogicalDirection direction, char[] textBuffer, int startIndex, int count)
+        int ITextPointer.GetTextInRun(LogicalDirection direction, Span<char> textBuffer)
         {
-            return GetTextInRun(direction, textBuffer, startIndex, count);
+            return GetTextInRun(direction, textBuffer);
         }
 
         object ITextPointer.GetAdjacentElement(LogicalDirection direction)

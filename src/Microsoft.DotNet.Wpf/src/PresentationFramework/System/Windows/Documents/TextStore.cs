@@ -1245,9 +1245,9 @@ namespace System.Windows.Documents
             GetCompositionPositions(view, out start, out end);
 
             // The call to MarkCultureProperty or SetText (which calls MarkCultureProperty)
-            // modifies the start and end TextPointers in the case of a multiple characters being replaced by 
+            // modifies the start and end TextPointers in the case of a multiple characters being replaced by
             // input from the IMEPad in a langugage different than that of the current text.
-            // startOffsetBefore, endOffsetBefore and _lastCompositionText are stored in a 
+            // startOffsetBefore, endOffsetBefore and _lastCompositionText are stored in a
             // CompositionEventRecord to be later replayed in RaiseCompositionEvents (after releasing the lock).
             // Store these variables based off of the original start and end TextPointers.
             int startOffsetBefore = start.Offset;
@@ -1501,11 +1501,10 @@ namespace System.Windows.Documents
                         // Currently we eat only one always.
                         if (navigator.GetPointerContext(LogicalDirection.Forward) == TextPointerContext.Text)
                         {
-                            Char[] nextChars;
-                            nextChars = new Char[2];
+                            Span<char> nextChars = stackalloc char[2];
 
                             // Check if the caret stands before newline - we should not eat it in overtype mode.
-                            navigator.GetTextInRun(LogicalDirection.Forward, nextChars, 0, nextChars.Length);
+                            navigator.GetTextInRun(LogicalDirection.Forward, nextChars);
                             if (!(nextChars[0] == Environment.NewLine[0] && nextChars[1] == Environment.NewLine[1]))
                             {
                                 int cnt = result.Length;
@@ -2401,7 +2400,7 @@ namespace System.Windows.Documents
 
                             // The next call to HandleCompositionEvents involves firing events
                             // that could result in a reentrancy. By initializing these TextPointers
-                            // we are being prepared for such an eventuality. 
+                            // we are being prepared for such an eventuality.
                             _previousCompositionStart = (_previousCompositionStartOffset == -1) ? null : textEditor.TextContainer.CreatePointerAtOffset(_previousCompositionStartOffset, LogicalDirection.Backward);
                             _previousCompositionEnd = (_previousCompositionEndOffset == -1) ? null : textEditor.TextContainer.CreatePointerAtOffset(_previousCompositionEndOffset, LogicalDirection.Forward);
                         }
@@ -2476,7 +2475,7 @@ namespace System.Windows.Documents
 
             if (cchReq > 0)
             {
-                runCount = TextPointerBase.GetTextWithLimit(navigator, LogicalDirection.Forward, text, charsCopied, Math.Min(cchReq, text.Length - charsCopied), limit);
+                runCount = TextPointerBase.GetTextWithLimit(navigator, LogicalDirection.Forward, text.AsSpan(charsCopied, Math.Min(cchReq, text.Length - charsCopied)), limit);
                 navigator.MoveByOffset(runCount);
                 charsCopied += runCount;
                 hitLimit = (text.Length == charsCopied) || (limit != null && navigator.CompareTo(limit) == 0);
@@ -2524,7 +2523,7 @@ namespace System.Windows.Documents
 
 
         // GetText handler for object runs.
-        private static bool WalkObjectRun(ITextPointer navigator, ITextPointer limit, char[] text, int cchReq, ref int charsCopied, UnsafeNativeMethods.TS_RUNINFO[] runInfo, int cRunInfoReq, ref int cRunInfoRcv)
+        private static bool WalkObjectRun(ITextPointer navigator, ITextPointer limit, Span<char> text, int cchReq, ref int charsCopied, UnsafeNativeMethods.TS_RUNINFO[] runInfo, int cRunInfoReq, ref int cRunInfoRcv)
         {
             bool hitLimit;
 
@@ -2566,7 +2565,7 @@ namespace System.Windows.Documents
         }
 
         // GetText handler for Blocks and TableCell to add '\n' or TS_CHAR_REGION.
-        private static bool WalkRegionBoundary(ITextPointer navigator, ITextPointer limit, char[] text, int cchReq, ref int charsCopied, UnsafeNativeMethods.TS_RUNINFO[] runInfo, int cRunInfoReq, ref int cRunInfoRcv)
+        private static bool WalkRegionBoundary(ITextPointer navigator, ITextPointer limit, Span<char> text, int cchReq, ref int charsCopied, UnsafeNativeMethods.TS_RUNINFO[] runInfo, int cRunInfoReq, ref int cRunInfoRcv)
         {
             bool hitLimit;
 

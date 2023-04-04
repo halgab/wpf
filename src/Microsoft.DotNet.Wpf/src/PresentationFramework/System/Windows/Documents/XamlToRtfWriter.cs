@@ -868,7 +868,7 @@ namespace System.Windows.Documents
             // Write child contents
             int nIndex = documentNode.Index;
             int nStart = nIndex + 1;
-            
+
             for (; nStart <= nIndex + documentNode.ChildCount; nStart++)
             {
                 DocumentNode documentNodeChild = dna.EntryAt(nStart);
@@ -3896,12 +3896,10 @@ namespace System.Windows.Documents
                 }
 
                 Encoding e = null;
-                byte[] rgAnsi = new byte[20];
-                char[] rgChar = new char[20];
 
                 for (int i = 0; i < s.Length; i++)
                 {
-                    AppendRtfChar(sb, s[i], cp, ref e, rgAnsi, rgChar);
+                    AppendRtfChar(sb, s[i], cp, ref e);
                 }
             }
 
@@ -3927,7 +3925,7 @@ namespace System.Windows.Documents
 
             #region Private Methods
 
-            private static void AppendRtfChar(StringBuilder sb, char c, int cp, ref Encoding e, byte[] rgAnsi, char[] rgChar)
+            private static void AppendRtfChar(StringBuilder sb, char c, int cp, ref Encoding e)
             {
                 // Escape special characters
                 if (c == '{' || c == '}' || c == '\\')
@@ -4004,20 +4002,23 @@ namespace System.Windows.Documents
 
                         // Other Unicode is encoded as hex or \u
                         default:
-                            AppendRtfUnicodeChar(sb, c, cp, ref e, rgAnsi, rgChar);
+                            AppendRtfUnicodeChar(sb, c, cp, ref e);
                             break;
                     }
                 }
             }
 
-            private static void AppendRtfUnicodeChar(StringBuilder sb, char c, int cp, ref Encoding e, byte[] rgAnsi, char[] rgChar)
+            private static void AppendRtfUnicodeChar(StringBuilder sb, char c, int cp, ref Encoding e)
             {
                 if (e == null)
                 {
                     e = InternalEncoding.GetEncoding(cp);
                 }
-                int cb = e.GetBytes(new char[] { c }, 0, 1, rgAnsi, 0);
-                int cch = e.GetChars(rgAnsi, 0, cb, rgChar, 0);
+
+                Span<byte> rgAnsi = stackalloc byte[20];
+                Span<char> rgChar = stackalloc char[20];
+                int cb = e.GetBytes(new Span<char>(ref c), rgAnsi);
+                int cch = e.GetChars(rgAnsi.Slice(0, cb), rgChar);
 
                 // If I successfully encoded, cch should be 1 and rgChars[0] == c
                 if (cch == 1 && rgChar[0] == c)

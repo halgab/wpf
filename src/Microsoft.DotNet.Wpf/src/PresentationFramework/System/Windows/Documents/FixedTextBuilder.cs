@@ -600,7 +600,7 @@ namespace System.Windows.Documents
             return sb.ToString();
         }
 
-        internal static bool MostlyRTL(string s)
+        internal static bool MostlyRTL(ReadOnlySpan<char> s)
         {
             int RTL = 0;
             int LTR = 0;

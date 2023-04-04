@@ -393,9 +393,9 @@ namespace System.Windows.Documents
                     {
                         if (xmlReader.Name == "Glyphs")
                         {
-                            unicodeStr = xmlReader.GetAttribute("UnicodeString");
+                            ReadOnlySpan<char> unicodeStr = xmlReader.GetAttribute("UnicodeString");
 
-                            if (!String.IsNullOrEmpty(unicodeStr))
+                            if (!unicodeStr.IsEmpty)
                             {
                                 string sidewaysString = xmlReader.GetAttribute("IsSideways");
                                 isSideways = false;
@@ -430,9 +430,9 @@ namespace System.Windows.Documents
                                         String.IsNullOrEmpty(caretStops) &&
                                         FixedTextBuilder.MostlyRTL(unicodeStr))
                                     {
-                                        char[] chars = unicodeStr.ToCharArray();
+                                        char[] chars = unicodeStr.ToArray();
                                         Array.Reverse(chars);
-                                        unicodeStr = new String(chars);
+                                        unicodeStr = chars;
                                     }
                                 }
                                 

@@ -827,7 +827,6 @@ namespace System.Windows.Documents
         }
 
         // The InsertText worker.  Adds text to the tree at a specified position.
-        // text is either a string or char[] to insert.
         internal void InsertTextInternal(TextPointer position, ReadOnlySpan<char> text)
         {
             TextTreeTextNode textNode;

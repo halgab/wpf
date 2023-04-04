@@ -1405,26 +1405,25 @@ namespace System.Windows.Documents
         {
             ITextPointer navigator;
             bool done;
-            string surrounding = "";
-            int bufLength;
+            StringBuilder surrounding = new();
 
             //
             // Get the previous text of the given range.
             //
             navigator = range.Start.CreatePointer();
             done = false;
-            bufLength = _maxSrounding;
-            while (!done && (bufLength > 0))
+            Span<char> buffer = stackalloc char[_maxSrounding];
+            while (!done && !buffer.IsEmpty)
             {
                 switch (navigator.GetPointerContext(LogicalDirection.Backward))
                 {
                     case TextPointerContext.Text:
-                        char[] buffer = new char[bufLength];
+                        // char[] buffer = new char[bufLength];
                         int copied = navigator.GetTextInRun(LogicalDirection.Backward, buffer);
                         Invariant.Assert(copied != 0);
                         navigator.MoveByOffset(0 - copied);
-                        bufLength -= copied;
-                        surrounding = surrounding.Insert(0, new string(buffer, 0, copied));
+                        surrounding.Insert(0,  buffer.Slice(0, copied));
+                        buffer = buffer.Slice(copied);
                         break;
 
                     case TextPointerContext.EmbeddedElement:
@@ -1458,24 +1457,24 @@ namespace System.Windows.Documents
             //
             // add the text in the given range.
             //
-            surrounding += range.Text;
+            surrounding.Append(range.Text);
 
             //
             // Get the following text of the given range.
             //
             navigator = range.End.CreatePointer();
             done = false;
-            bufLength = _maxSrounding;
-            while (!done && (bufLength > 0))
+            buffer = stackalloc char[_maxSrounding];
+            while (!done && !buffer.IsEmpty)
             {
                 switch (navigator.GetPointerContext(LogicalDirection.Forward))
                 {
                     case TextPointerContext.Text:
-                        char[] buffer = new char[bufLength];
+                        // char[] buffer = new char[bufLength];
                         int copied = navigator.GetTextInRun(LogicalDirection.Forward, buffer);
                         navigator.MoveByOffset(copied);
-                        bufLength -= copied;
-                        surrounding += new string(buffer, 0, copied);
+                        surrounding.Append(buffer.Slice(0, copied));
+                        buffer = buffer.Slice(copied);
                         break;
 
                     case TextPointerContext.EmbeddedElement:
@@ -1502,7 +1501,7 @@ namespace System.Windows.Documents
                 }
             }
 
-            return surrounding;
+            return surrounding.ToString();
         }
 
         //

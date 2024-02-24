@@ -17,6 +17,8 @@ using System.Net;
 using System.Windows.Threading; //DispatcherObject
 using System.Windows.Markup;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MS.Internal.Navigation
 {
@@ -39,19 +41,19 @@ namespace MS.Internal.Navigation
             _cc = cc;
             _callbackDispatcher = callbackDispatcher;
         }
-        
+
         #endregion Constructors
 
         #region Private Methods
-        
+
         private void UpdateNavigationProgress()
-        {            
-            for(long numBytes =_lastProgressEventByte + _bytesInterval; 
-                numBytes <= _bytesRead; 
+        {
+            for(long numBytes =_lastProgressEventByte + _bytesInterval;
+                numBytes <= _bytesRead;
                 numBytes += _bytesInterval)
             {
                 UpdateNavProgressHelper(numBytes);
-                _lastProgressEventByte = numBytes;                
+                _lastProgressEventByte = numBytes;
             }
 
             if (_bytesRead == _maxBytes && _lastProgressEventByte < _maxBytes)
@@ -83,9 +85,9 @@ namespace MS.Internal.Navigation
         #endregion Private Methods
 
         #region Overrides
-        
-        #region Overridden Properties                 
-        
+
+        #region Overridden Properties
+
         /// <summary>
         /// Overridden CanRead Property
         /// </summary>
@@ -145,10 +147,10 @@ namespace MS.Internal.Navigation
             }
         }
 
-        #endregion Overridden Properties                 
-        
-        #region Overridden Public Methods   
-        
+        #endregion Overridden Properties
+
+        #region Overridden Public Methods
+
         /// <summary>
         /// Overridden BeginRead method
         /// </summary>
@@ -258,6 +260,11 @@ namespace MS.Internal.Navigation
             _stream.Flush();
         }
 
+        public override Task FlushAsync(CancellationToken cancellationToken)
+        {
+            return _stream.FlushAsync(cancellationToken);
+        }
+
         /// <summary>
         /// Overridden GetHashCode method
         /// </summary>
@@ -304,18 +311,37 @@ namespace MS.Internal.Navigation
         /// <param name="offset"></param>
         /// <param name="count"></param>
         /// <returns></returns>
-        public override int Read(
+        public sealed override int Read(
             byte[] buffer,
             int offset,
             int count
             )
         {
-            int bytes = _stream.Read(buffer, offset, count);
+            return ProcessRead(_stream.Read(buffer, offset, count));
+        }
+
+        public override int Read(Span<byte> buffer)
+        {
+            return ProcessRead(_stream.Read(buffer));
+        }
+
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            return ProcessRead(await _stream.ReadAsync(buffer, offset, count, cancellationToken));
+        }
+
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        {
+            return ProcessRead(await _stream.ReadAsync(buffer, cancellationToken));
+        }
+
+        private int ProcessRead(int bytes)
+        {
             _bytesRead += bytes;
 
-            //File, http, stream resources all seem to pass in a valid maxbytes. 
+            //File, http, stream resources all seem to pass in a valid maxbytes.
             //Incase loading compressed container or asp files serving out content cause maxbytes
-            //to be not known upfront or a webserver does not send a content length(does http spec mandate it), 
+            //to be not known upfront or a webserver does not send a content length(does http spec mandate it),
             //update the maxbytes dynamically here. Also if we reach the end of the download stream
             //force a NavigationProgress event with the last set of bytes and the final maxbytes value
 
@@ -394,13 +420,28 @@ namespace MS.Internal.Navigation
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="count"></param>
-        public override void Write(
+        public sealed override void Write(
             byte[] buffer,
             int offset,
             int count
             )
         {
             _stream.Write(buffer, offset, count);
+        }
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            _stream.Write(buffer);
+        }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            return _stream.WriteAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        {
+            return _stream.WriteAsync(buffer, cancellationToken);
         }
 
         /// <summary>
@@ -414,12 +455,12 @@ namespace MS.Internal.Navigation
             _stream.WriteByte(value);
         }
 
-        #endregion Overridden Public Methods                 
+        #endregion Overridden Public Methods
 
         #endregion Overrides
 
-        #region Properties                 
-        
+        #region Properties
+
         /// <summary>
         /// Underlying Stream of BindStream
         /// </summary>
@@ -452,7 +493,7 @@ namespace MS.Internal.Navigation
             }
         }
 
-        #endregion Properties                         
+        #endregion Properties
 
         #region Private Data
 

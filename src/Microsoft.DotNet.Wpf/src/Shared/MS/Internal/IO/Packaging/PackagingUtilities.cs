@@ -111,8 +111,7 @@ namespace MS.Internal.IO.Packaging
         /// <remarks>Common argument verification for Stream.Read()</remarks>
         static internal void VerifyStreamReadArgs(Stream s, byte[] buffer, int offset, int count)
         {
-            if (!s.CanRead)
-                throw new NotSupportedException(SR.ReadNotSupported);
+            VerifyStreamCanRead(s);
 
             ArgumentNullException.ThrowIfNull(buffer);
 
@@ -135,6 +134,13 @@ namespace MS.Internal.IO.Packaging
             }
         }
 
+        internal static void VerifyStreamCanRead(Stream s)
+        {
+            if (!s.CanRead)
+                throw new NotSupportedException(SR.ReadNotSupported);
+        }
+
+
         /// <summary>
         /// VerifyStreamWriteArgs
         /// </summary>
@@ -145,8 +151,7 @@ namespace MS.Internal.IO.Packaging
         /// <remarks>common argument verification for Stream.Write</remarks>
         static internal void VerifyStreamWriteArgs(Stream s, byte[] buffer, int offset, int count)
         {
-            if (!s.CanWrite)
-                throw new NotSupportedException(SR.WriteNotSupported);
+            VerifyStreamCanWrite(s);
 
             ArgumentNullException.ThrowIfNull(buffer);
 
@@ -165,6 +170,12 @@ namespace MS.Internal.IO.Packaging
                 if (offset + count > buffer.Length)
                     throw new ArgumentException(SR.WriteBufferTooSmall, "buffer");
             }
+        }
+
+        internal static void VerifyStreamCanWrite(Stream s)
+        {
+            if (!s.CanWrite)
+                throw new NotSupportedException(SR.WriteNotSupported);
         }
 
         /// <summary>

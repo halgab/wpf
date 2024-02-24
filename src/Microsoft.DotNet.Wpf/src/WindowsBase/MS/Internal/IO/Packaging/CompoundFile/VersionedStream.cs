@@ -5,7 +5,7 @@
 //
 //
 // Description:
-//   This class provides file versioning support for streams provided by 
+//   This class provides file versioning support for streams provided by
 //   IDataTransform implementations.
 //
 //
@@ -47,6 +47,20 @@ namespace MS.Internal.IO.Packaging.CompoundFile
         }
 
         /// <summary>
+        /// Return the bytes requested from the container
+        /// </summary>
+        public override int Read(Span<byte> buffer)
+        {
+            CheckDisposed();
+
+            // ReadAttempt accepts an optional boolean.  If this is true, that means
+            // we are expecting a legal FormatVersion to exist and that it is readable by our
+            // code version.  We do not want to force this check if we are empty.
+            _versionOwner.ReadAttempt(_stream.Length > 0);
+            return _stream.Read(buffer);
+        }
+
+        /// <summary>
         /// Write
         /// </summary>
         public override void Write(byte[] buffer, int offset, int count)
@@ -54,6 +68,16 @@ namespace MS.Internal.IO.Packaging.CompoundFile
             CheckDisposed();
             _versionOwner.WriteAttempt();
             _stream.Write(buffer, offset, count);
+        }
+
+        /// <summary>
+        /// Write
+        /// </summary>
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            CheckDisposed();
+            _versionOwner.WriteAttempt();
+            _stream.Write(buffer);
         }
 
         /// <summary>

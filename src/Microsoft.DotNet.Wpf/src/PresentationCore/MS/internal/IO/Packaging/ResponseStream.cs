@@ -98,13 +98,36 @@ namespace MS.Internal.IO.Packaging
         /// The read semantics, and in particular the restoration of the position in case of an
         /// exception, is implemented by the inner stream, i.e. the stream returned by PackWebResponse.
         /// </remarks>
-        public override int Read(byte[] buffer, int offset, int count)
+        public sealed override int Read(byte[] buffer, int offset, int count)
         {
             EventTrace.EasyTraceEvent(EventTrace.Keyword.KeywordXPS, EventTrace.Level.Verbose, EventTrace.Event.WClientDRXReadStreamBegin, count);
 
             CheckDisposed();
 
             int rslt = _innerStream.Read(buffer, offset, count);
+
+            EventTrace.EasyTraceEvent(EventTrace.Keyword.KeywordXPS, EventTrace.Level.Verbose, EventTrace.Event.WClientDRXReadStreamEnd, rslt);
+
+            return rslt;
+        }
+
+        /// <summary>
+        /// Return the bytes requested
+        /// </summary>
+        /// <param name="buffer">destination buffer</param>
+        /// <returns>how many bytes were written into buffer</returns>
+        /// <remarks>
+        /// Blocks until data is available.
+        /// The read semantics, and in particular the restoration of the position in case of an
+        /// exception, is implemented by the inner stream, i.e. the stream returned by PackWebResponse.
+        /// </remarks>
+        public override int Read(Span<byte> buffer)
+        {
+            EventTrace.EasyTraceEvent(EventTrace.Keyword.KeywordXPS, EventTrace.Level.Verbose, EventTrace.Event.WClientDRXReadStreamBegin, buffer.Length);
+
+            CheckDisposed();
+
+            int rslt = _innerStream.Read(buffer);
 
             EventTrace.EasyTraceEvent(EventTrace.Keyword.KeywordXPS, EventTrace.Level.Verbose, EventTrace.Event.WClientDRXReadStreamEnd, rslt);
 
@@ -136,10 +159,22 @@ namespace MS.Internal.IO.Packaging
         /// Write
         /// </summary>
         /// <exception cref="NotSupportedException">not supported</exception>
-        public override void Write(byte[] buf, int offset, int count)
+        public sealed override void Write(byte[] buf, int offset, int count)
         {
             CheckDisposed();
             _innerStream.Write(buf, offset, count);
+        }
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            CheckDisposed();
+            _innerStream.Write(buffer);
+        }
+
+        public override void WriteByte(byte value)
+        {
+            CheckDisposed();
+            _innerStream.WriteByte(value);
         }
 
         /// <summary>

@@ -18,6 +18,8 @@ using System.IO.Compression;                // for DeflateStream
 using System.Diagnostics;
 
 using System.IO.Packaging;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using MS.Internal.WindowsBase;
 
@@ -40,7 +42,7 @@ namespace MS.Internal.IO.Packaging
     /// <summary>
     /// Emulates a fully functional stream using restricted functionality DeflateStream and a temp file
     /// </summary>
-    internal class CompressEmulationStream : Stream
+    internal sealed class CompressEmulationStream : Stream
     {
         //------------------------------------------------------
         //
@@ -64,8 +66,49 @@ namespace MS.Internal.IO.Packaging
             CheckDisposed();
 
             PackagingUtilities.VerifyStreamReadArgs(this, buffer, offset, count);
-            
+
             return _tempStream.Read(buffer, offset, count);
+        }
+
+        /// <summary>
+        /// Return the bytes requested from the container
+        /// </summary>
+        /// <param name="buffer">destination buffer</param>
+        /// <returns>how many bytes were written into <paramref name="buffer" />.</returns>
+        /// <remarks>
+        /// The underlying stream, expected to be an IsolatedStorageFileStream,
+        /// is trusted to leave the IO position unchanged in case of an exception.
+        /// </remarks>
+        public override int Read(Span<byte> buffer)
+        {
+            CheckDisposed();
+            PackagingUtilities.VerifyStreamCanRead(this);
+
+            return _tempStream.Read(buffer);
+        }
+
+        public override int ReadByte()
+        {
+            CheckDisposed();
+            PackagingUtilities.VerifyStreamCanRead(this);
+
+            return _tempStream.ReadByte();
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            CheckDisposed();
+            PackagingUtilities.VerifyStreamReadArgs(this, buffer, offset, count);
+
+            return _tempStream.ReadAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        {
+            CheckDisposed();
+            PackagingUtilities.VerifyStreamCanRead(this);
+
+            return _tempStream.ReadAsync(buffer, cancellationToken);
         }
 
         /// <summary>
@@ -140,6 +183,30 @@ namespace MS.Internal.IO.Packaging
                 return;
 
             _tempStream.Write(buffer, offset, count);
+            _dirty = true;
+        }
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            CheckDisposed();
+
+            PackagingUtilities.VerifyStreamCanWrite(this);
+
+            // no-op
+            if (buffer.IsEmpty)
+                return;
+
+            _tempStream.Write(buffer);
+            _dirty = true;
+        }
+
+        public override void WriteByte(byte value)
+        {
+            CheckDisposed();
+
+            PackagingUtilities.VerifyStreamCanWrite(this);
+
+            _tempStream.WriteByte(value);
             _dirty = true;
         }
 
@@ -254,7 +321,7 @@ namespace MS.Internal.IO.Packaging
         /// <param name="position">current logical stream position</param>
         /// <param name="tempStream">should be an IsolatedStorageFileStream - not closed - caller determines lifetime</param>
         /// <param name="transformer">class that does the compression/decompression</param>
-        /// <remarks>This class should only invoked when emulation is required.  
+        /// <remarks>This class should only invoked when emulation is required.
         /// Does not close any given stream, even when Close is called. This means that it requires
         /// another wrapper Stream class.</remarks>
         internal CompressEmulationStream(Stream baseStream, Stream tempStream, long position, IDeflateTransform transformer)
@@ -296,7 +363,7 @@ namespace MS.Internal.IO.Packaging
         /// Dispose(bool)
         /// </summary>
         /// <param name="disposing"></param>
-        /// <remarks>We implement this because we want a consistent experience (essentially Flush our data) if the user chooses to 
+        /// <remarks>We implement this because we want a consistent experience (essentially Flush our data) if the user chooses to
         /// call Dispose() instead of Close().</remarks>
         protected override void Dispose(bool disposing)
         {

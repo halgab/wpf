@@ -115,14 +115,6 @@ internal sealed class RightsManagementSuppressedStream : StreamProxy
     /// <summary>
     /// <see cref="System.IO.Stream"/>
     /// </summary>
-    public override int Read(byte[] buffer, int offset, int count)
-    {
-        return base.Read(buffer, offset, count);
-    }
-
-    /// <summary>
-    /// <see cref="System.IO.Stream"/>
-    /// </summary>
     public override long Seek(long offset, SeekOrigin origin)
     {
         return base.Seek(offset, origin);
@@ -146,6 +138,20 @@ internal sealed class RightsManagementSuppressedStream : StreamProxy
         ThrowIfReadOnly();
 
         base.Write(buffer, offset, count);
+    }
+
+    public override void Write(ReadOnlySpan<byte> buffer)
+    {
+        ThrowIfReadOnly();
+
+        base.Write(buffer);
+    }
+
+    public override void WriteByte(byte value)
+    {
+        ThrowIfReadOnly();
+
+        base.WriteByte(value);
     }
 
     #endregion Stream Overrides
@@ -173,7 +179,7 @@ internal sealed class RightsManagementSuppressedStream : StreamProxy
     //--------------------------------------------------------------------------
     // Private Properties
     //--------------------------------------------------------------------------
-    
+
     /// <summary>
     /// Returns whether or not the current RM permission set allows writing to
     /// the stream.

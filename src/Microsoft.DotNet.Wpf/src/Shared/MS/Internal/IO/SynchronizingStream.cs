@@ -22,7 +22,7 @@ namespace MS.Internal.IO.Packaging
     /// <summary>
     /// Wrap returned stream to protect non-thread-safe API's from race conditions
     /// </summary>
-    internal class SynchronizingStream : Stream
+    internal sealed class SynchronizingStream : Stream
     {
         //------------------------------------------------------
         //
@@ -63,6 +63,20 @@ namespace MS.Internal.IO.Packaging
             {
                 CheckDisposed();
                 return (_baseStream.Read(buffer, offset, count));
+            }
+        }
+
+        /// <summary>
+        /// Return the bytes requested
+        /// </summary>
+        /// <param name="buffer">destination buffer</param>
+        /// <returns>how many bytes were written into buffer</returns>
+        public override int Read(Span<byte> buffer)
+        {
+            lock (_syncRoot)
+            {
+                CheckDisposed();
+                return (_baseStream.Read(buffer));
             }
         }
 
@@ -129,6 +143,15 @@ namespace MS.Internal.IO.Packaging
             {
                 CheckDisposed();
                 _baseStream.Write(buf, offset, count);
+            }
+        }
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            lock (_syncRoot)
+            {
+                CheckDisposed();
+                _baseStream.Write(buffer);
             }
         }
 

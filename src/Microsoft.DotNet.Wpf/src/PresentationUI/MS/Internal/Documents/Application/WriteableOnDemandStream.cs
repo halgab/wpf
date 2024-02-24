@@ -3,23 +3,25 @@
 // See the LICENSE file in the project root for more information.
 
 // Description:
-// This class acts as a type of proxy; it is responsible for forwarding all 
-// stream requests to the active stream.  Unlike a proxy it is also controls 
+// This class acts as a type of proxy; it is responsible for forwarding all
+// stream requests to the active stream.  Unlike a proxy it is also controls
 // which stream is active. Initially the active stream is the stream provided
 // at construction, at the time of the first write operation the active stream
 // is replaced with one provided by a delegate.
 
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.TrustUI;
 
 namespace MS.Internal.Documents.Application
 {
 /// <summary>
 /// This class acts as a type of proxy; it is responsible for forwarding all
-/// stream requests to the active stream.  Unlike a proxy it is also 
-/// controls which stream is active. Initially the active stream is the 
-/// stream provided on construction, at the time of the first write 
+/// stream requests to the active stream.  Unlike a proxy it is also
+/// controls which stream is active. Initially the active stream is the
+/// stream provided on construction, at the time of the first write
 /// operation the active stream is replaced with one provided by a delegate.
 /// </summary>
 /// <remarks>
@@ -40,11 +42,11 @@ internal sealed class WriteableOnDemandStream : Stream
     /// </summary>
     /// <exception cref="System.ArgumentNullException" />
     /// <param name="readingStream">The read only Stream.</param>
-    /// <param name="mode">FileMode that will be use to create write 
+    /// <param name="mode">FileMode that will be use to create write
     /// stream.</param>
     /// <param name="access">FileAccess that will be use to create write
     /// stream.</param>
-    /// <param name="writeableStreamFactory">Delegate used to create a 
+    /// <param name="writeableStreamFactory">Delegate used to create a
     /// write stream on first write operation.</param>
     internal WriteableOnDemandStream(
         Stream readingStream,
@@ -150,6 +152,26 @@ internal sealed class WriteableOnDemandStream : Stream
         return _active.Read(buffer, offset, count);
     }
 
+    public override int Read(Span<byte> buffer)
+    {
+        return _active.Read(buffer);
+    }
+
+    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        return _active.ReadAsync(buffer, offset, count, cancellationToken);
+    }
+
+    public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+    {
+        return _active.ReadAsync(buffer, cancellationToken);
+    }
+
+    public override int ReadByte()
+    {
+        return _active.ReadByte();
+    }
+
     /// <summary>
     /// <see cref="System.IO.Stream.Seek"/>
     /// </summary>
@@ -207,6 +229,31 @@ internal sealed class WriteableOnDemandStream : Stream
         EnsureWritable();
         _active.Write(buffer, offset, count);
     }
+
+    public override void Write(ReadOnlySpan<byte> buffer)
+    {
+        EnsureWritable();
+        _active.Write(buffer);
+    }
+
+    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        EnsureWritable();
+        return _active.WriteAsync(buffer, offset, count, cancellationToken);
+    }
+
+    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+    {
+        EnsureWritable();
+        return _active.WriteAsync(buffer, cancellationToken);
+    }
+
+    public override void WriteByte(byte value)
+    {
+        EnsureWritable();
+        _active.WriteByte(value);
+    }
+
     #endregion Decorating Proxies for Stream
     #endregion Stream Overrides
 
@@ -248,7 +295,7 @@ internal sealed class WriteableOnDemandStream : Stream
                     // we do not want to dispose of _active
                     // first we are merely a proxy; and being done with
                     // us is not the same as being done with the PackagePart
-                    // it supprots, the Package which created _active 
+                    // it supprots, the Package which created _active
                     // is calls dispose
                 }
                 _isActiveWriteable = true;

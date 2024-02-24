@@ -5,7 +5,7 @@
 //
 //
 // Description:
-//   This class provides file versioning support for streams provided by 
+//   This class provides file versioning support for streams provided by
 //   IDataTransform implementations and any client code that needs
 //   to store a FormatVersion at the beginning of a stream.
 //
@@ -40,12 +40,31 @@ namespace MS.Internal.IO.Packaging.CompoundFile
         }
 
         /// <summary>
+        /// Return the bytes requested from the container
+        /// </summary>
+        public override int Read(Span<byte> buffer)
+        {
+            // throw if version missing
+            ReadAttempt(true);
+            return BaseStream.Read(buffer);
+        }
+
+        /// <summary>
         /// Write
         /// </summary>
         public override void Write(byte[] buffer, int offset, int count)
         {
             WriteAttempt();
             BaseStream.Write(buffer, offset, count);
+        }
+
+        /// <summary>
+        /// Write
+        /// </summary>
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            WriteAttempt();
+            BaseStream.Write(buffer);
         }
 
         /// <summary>
@@ -198,7 +217,7 @@ namespace MS.Internal.IO.Packaging.CompoundFile
 
 
         /// <summary>
-        /// Constructor to use for the "versioned stream" - the one that actually houses the 
+        /// Constructor to use for the "versioned stream" - the one that actually houses the
         /// persisted FormatVersion.
         /// </summary>
         /// <param name="baseStream"></param>

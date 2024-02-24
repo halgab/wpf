@@ -4,20 +4,22 @@
 
 // Description:
 //   Implements the Proxy pattern from Design Patterns for Stream.  The intended
-//   usage is to control access to the Stream; specifically to allow one to 
+//   usage is to control access to the Stream; specifically to allow one to
 //   replace the underlying stream.  The StreamProxy can also ensure, if
 //   desired, that the underlying stream is readonly.
 
 using System;
 using System.IO;
 using System.Security;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.TrustUI;
 
 namespace MS.Internal.Documents.Application
 {
 /// <summary>
 /// Implements the Proxy pattern from Design Patterns for Stream.  The intended
-/// usage is to control access to the Stream; specifically to allow one to 
+/// usage is to control access to the Stream; specifically to allow one to
 /// replace the underlying stream.  The StreamProxy can also ensure, if
 /// desired, that the underlying stream is readonly.
 /// </summary>
@@ -137,9 +139,29 @@ internal class StreamProxy : Stream
     /// <summary>
     /// <see cref="System.IO.Stream"/>
     /// </summary>
-    public override int Read(byte[] buffer, int offset, int count)
+    public sealed override int Read(byte[] buffer, int offset, int count)
     {
         return _proxy.Value.Read(buffer, offset, count);
+    }
+
+    public override int Read(Span<byte> buffer)
+    {
+        return _proxy.Value.Read(buffer);
+    }
+
+    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        return _proxy.Value.ReadAsync(buffer, offset, count, cancellationToken);
+    }
+
+    public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+    {
+        return _proxy.Value.ReadAsync(buffer, cancellationToken);
+    }
+
+    public override int ReadByte()
+    {
+        return _proxy.Value.ReadByte();
     }
 
     /// <summary>
@@ -179,6 +201,26 @@ internal class StreamProxy : Stream
     public override void Write(byte[] buffer, int offset, int count)
     {
         _proxy.Value.Write(buffer, offset, count);
+    }
+
+    public override void Write(ReadOnlySpan<byte> buffer)
+    {
+        _proxy.Value.Write(buffer);
+    }
+
+    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        return _proxy.Value.WriteAsync(buffer, offset, count, cancellationToken);
+    }
+
+    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+    {
+        return _proxy.Value.WriteAsync(buffer, cancellationToken);
+    }
+
+    public override void WriteByte(byte value)
+    {
+        _proxy.Value.WriteByte(value);
     }
 
     /// <summary>

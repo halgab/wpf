@@ -16,10 +16,12 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MS.Internal.IO.Packaging.CompoundFile
 {
-    internal class StreamWithDictionary : Stream, IDictionary
+    internal sealed class StreamWithDictionary : Stream, IDictionary
     {
         Stream baseStream;
         IDictionary baseDictionary;
@@ -36,7 +38,7 @@ namespace MS.Internal.IO.Packaging.CompoundFile
         public override bool CanRead { get{ return !_disposed && baseStream.CanRead; }}
         public override bool CanSeek { get { return !_disposed && baseStream.CanSeek; } }
         public override bool CanWrite { get { return !_disposed && baseStream.CanWrite; } }
-        public override long Length  
+        public override long Length
         {
             get
             {
@@ -51,7 +53,7 @@ namespace MS.Internal.IO.Packaging.CompoundFile
             {
                 CheckDisposed();
                 return baseStream.Position;
-            } 
+            }
             set
             {
                 CheckDisposed();
@@ -59,10 +61,16 @@ namespace MS.Internal.IO.Packaging.CompoundFile
             }
         }
 
-        public override void Flush() 
+        public override void Flush()
         {
             CheckDisposed();
-            baseStream.Flush(); 
+            baseStream.Flush();
+        }
+
+        public override Task FlushAsync(CancellationToken cancellationToken)
+        {
+            CheckDisposed();
+            return baseStream.FlushAsync(cancellationToken);
         }
 
         public override long Seek( long offset, SeekOrigin origin )
@@ -71,7 +79,7 @@ namespace MS.Internal.IO.Packaging.CompoundFile
             return baseStream.Seek(offset, origin);
         }
 
-        public override void SetLength( long newLength ) 
+        public override void SetLength( long newLength )
         {
             CheckDisposed();
             baseStream.SetLength(newLength);
@@ -83,10 +91,58 @@ namespace MS.Internal.IO.Packaging.CompoundFile
             return baseStream.Read(buffer, offset, count);
         }
 
+        public override int Read(Span<byte> buffer)
+        {
+            CheckDisposed();
+            return baseStream.Read(buffer);
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            CheckDisposed();
+            return baseStream.ReadAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        {
+            CheckDisposed();
+            return baseStream.ReadAsync(buffer, cancellationToken);
+        }
+
+        public override int ReadByte()
+        {
+            CheckDisposed();
+            return baseStream.ReadByte();
+        }
+
         public override void Write( byte[] buffer, int offset, int count )
         {
             CheckDisposed();
             baseStream.Write(buffer, offset, count);
+        }
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            CheckDisposed();
+            baseStream.Write(buffer);
+        }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            CheckDisposed();
+            return baseStream.WriteAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        {
+            CheckDisposed();
+            return baseStream.WriteAsync(buffer, cancellationToken);
+        }
+
+        public override void WriteByte(byte value)
+        {
+            CheckDisposed();
+            baseStream.WriteByte(value);
         }
 
         //------------------------------------------------------

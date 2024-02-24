@@ -7,16 +7,18 @@
 //  Description:    The class is used to wrap a given stream in a way that the Flush
 //                  and Close calls to the stream are Ignored. This stream class has been
 //                  created specifically for perf improvements for the ZipPackage.
-//                  
+//
 //
 
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;                       // for ExceptionStringTable
 using MS.Internal.WindowsBase;
 
 namespace MS.Internal.IO.Packaging
-{    
+{
     /// <summary>
     /// This class ignores all calls to Flush() and Close() methods
     /// depending on whether the IgnoreFlushAndClose property is set to true
@@ -160,6 +162,30 @@ namespace MS.Internal.IO.Packaging
             return _stream.Read(buffer, offset, count);
         }
 
+        public override int Read(Span<byte> buffer)
+        {
+            ThrowIfStreamDisposed();
+            return _stream.Read(buffer);
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            ThrowIfStreamDisposed();
+            return _stream.ReadAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        {
+            ThrowIfStreamDisposed();
+            return _stream.ReadAsync(buffer, cancellationToken);
+        }
+
+        public override int ReadByte()
+        {
+            ThrowIfStreamDisposed();
+            return _stream.ReadByte();
+        }
+
         /// <summary>
         /// Member of the abstract Stream class
         /// </summary>
@@ -172,6 +198,30 @@ namespace MS.Internal.IO.Packaging
             _stream.Write(buf, offset, count);
         }
 
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            ThrowIfStreamDisposed();
+            _stream.Write(buffer);
+        }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            ThrowIfStreamDisposed();
+            return _stream.WriteAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        {
+            ThrowIfStreamDisposed();
+            return _stream.WriteAsync(buffer, cancellationToken);
+        }
+
+        public override void WriteByte(byte value)
+        {
+            ThrowIfStreamDisposed();
+            _stream.WriteByte(value);
+        }
+
         /// <summary>
         /// Member of the abstract Stream class
         /// </summary>
@@ -179,6 +229,13 @@ namespace MS.Internal.IO.Packaging
         {
             ThrowIfStreamDisposed();
         }
+
+        public override Task FlushAsync(CancellationToken cancellationToken)
+        {
+            ThrowIfStreamDisposed();
+            return Task.CompletedTask;
+        }
+
         #endregion Methods
 
         //------------------------------------------------------
@@ -223,6 +280,6 @@ namespace MS.Internal.IO.Packaging
         private bool _disposed;
 
         #endregion Private Variables
-    }    
+    }
 }
 

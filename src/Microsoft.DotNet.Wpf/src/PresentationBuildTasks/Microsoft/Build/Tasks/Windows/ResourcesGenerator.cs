@@ -39,7 +39,7 @@ namespace Microsoft.Build.Tasks.Windows
         // to ResourceWriter which only opens the handle when it's being used.
         // We use flags in ResourceWriter so that it will opportunistically dispose the stream.
         // This has potential for delaying failures, but that's acceptable in this scenario.
-        private class LazyFileStream : Stream
+        private sealed class LazyFileStream : Stream
         {
             private readonly string _sourcePath;
             private FileStream _sourceStream;
@@ -93,6 +93,11 @@ namespace Microsoft.Build.Tasks.Windows
                 return SourceStream.Read(buffer, offset, count);
             }
 
+            public override int ReadByte()
+            {
+                return SourceStream.ReadByte();
+            }
+
             public override long Seek(long offset, SeekOrigin origin)
             {
                 return SourceStream.Seek(offset, origin);
@@ -110,6 +115,12 @@ namespace Microsoft.Build.Tasks.Windows
                 throw new NotSupportedException();
             }
 
+            public override void WriteByte(byte value)
+            {
+                // This is backed by a readonly file.
+                throw new NotSupportedException();
+            }
+
             protected override void Dispose(bool disposing)
             {
                 if (disposing)
@@ -122,7 +133,7 @@ namespace Microsoft.Build.Tasks.Windows
                 }
             }
         }
-        
+
         //------------------------------------------------------
         //
         //  Constructors
@@ -326,10 +337,10 @@ namespace Microsoft.Build.Tasks.Windows
         private string GetResourceIdForResourceFile(ITaskItem resFile)
         {
             bool requestExtensionChange = true;
-            
+
             return GetResourceIdForResourceFile(
-                resFile.ItemSpec, 
-                resFile.GetMetadata(SharedStrings.Link), 
+                resFile.ItemSpec,
+                resFile.GetMetadata(SharedStrings.Link),
                 resFile.GetMetadata(SharedStrings.LogicalName),
                 OutputPath,
                 SourceDir,
@@ -337,8 +348,8 @@ namespace Microsoft.Build.Tasks.Windows
         }
 
         internal static string GetResourceIdForResourceFile(
-            string filePath, 
-            string linkAlias, 
+            string filePath,
+            string linkAlias,
             string logicalName,
             string outputPath,
             string sourceDir,
@@ -346,14 +357,14 @@ namespace Microsoft.Build.Tasks.Windows
         {
             string relPath = String.Empty;
 
-            // Please note the subtle distinction between <Link /> and <LogicalName />. 
-            // <Link /> is treated as a fully resolvable path and is put through the same 
-            // transformations as the original file path. <LogicalName /> on the other hand 
-            // is treated as an alias for the given resource and is used as is. Whether <Link /> 
-            // was meant to be treated thus is debatable. Nevertheless in .Net 4.5 it would 
-            // amount to a breaking change to have to change the behavior of <Link /> and 
-            // hence the choice to support <LogicalName /> with the desired semantics. All 
-            // said in most of the regular scenarios using <Link /> or <Logical /> will result in 
+            // Please note the subtle distinction between <Link /> and <LogicalName />.
+            // <Link /> is treated as a fully resolvable path and is put through the same
+            // transformations as the original file path. <LogicalName /> on the other hand
+            // is treated as an alias for the given resource and is used as is. Whether <Link />
+            // was meant to be treated thus is debatable. Nevertheless in .Net 4.5 it would
+            // amount to a breaking change to have to change the behavior of <Link /> and
+            // hence the choice to support <LogicalName /> with the desired semantics. All
+            // said in most of the regular scenarios using <Link /> or <Logical /> will result in
             // the same resourceId being picked.
 
             if (!String.IsNullOrEmpty(logicalName))
@@ -369,7 +380,7 @@ namespace Microsoft.Build.Tasks.Windows
                 linkAlias = ReplaceXAMLWithBAML(filePath, linkAlias, requestExtensionChange);
                 filePath = !string.IsNullOrEmpty(linkAlias) ? linkAlias : filePath;
                 string fullFilePath = Path.GetFullPath(filePath);
-                
+
                 //
                 // If the resFile, or it's perceived path, is relative to the StagingDir
                 // (OutputPath here) take the relative path as resource id.
@@ -377,14 +388,14 @@ namespace Microsoft.Build.Tasks.Windows
                 // to the project directory, take this relative path as resource id.
                 // Otherwise, just take the file name as resource id.
                 //
-                
+
                 relPath = TaskHelper.GetRootRelativePath(outputPath, fullFilePath);
-                
+
                 if (string.IsNullOrEmpty(relPath))
                 {
                     relPath = TaskHelper.GetRootRelativePath(sourceDir, fullFilePath);
                 }
-                
+
                 if (string.IsNullOrEmpty(relPath))
                 {
                     relPath = Path.GetFileName(fullFilePath);
@@ -403,8 +414,8 @@ namespace Microsoft.Build.Tasks.Windows
 
         private static string ReplaceXAMLWithBAML(string sourceFilePath, string path, bool requestExtensionChange)
         {
-            if (requestExtensionChange && 
-                Path.GetExtension(sourceFilePath).Equals(SharedStrings.BamlExtension) && 
+            if (requestExtensionChange &&
+                Path.GetExtension(sourceFilePath).Equals(SharedStrings.BamlExtension) &&
                 Path.GetExtension(path).Equals(SharedStrings.XamlExtension))
             {
                 // Replace the path extension to baml only if the source file path is baml

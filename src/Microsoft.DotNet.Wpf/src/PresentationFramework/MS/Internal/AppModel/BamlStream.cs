@@ -4,7 +4,7 @@
 
 //
 // Description:
-// BamlStream is stream wrapper, It contains a raw baml stream and 
+// BamlStream is stream wrapper, It contains a raw baml stream and
 // the assembly which hosts the baml stream.
 //
 
@@ -15,11 +15,13 @@ using System.Resources;
 using System.Globalization;
 using System.Windows.Markup;
 using System.Security;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MS.Internal.AppModel
 {
     // <summary>
-    // BamlStream is stream wrapper, It contains a raw baml stream and 
+    // BamlStream is stream wrapper, It contains a raw baml stream and
     // the assembly which hosts the baml stream.
     // </summary>
     internal class BamlStream : Stream, IStreamInfo
@@ -195,13 +197,21 @@ namespace MS.Internal.AppModel
         // <summary>
         // Overridden Read method
         // </summary>
-        public override int Read(
+        public sealed override int Read(
             byte[] buffer,
             int offset,
             int count
             )
         {
             return _stream.Read(buffer, offset, count);
+        }
+
+        // <summary>
+        // Overridden Read method
+        // </summary>
+        public override int Read(Span<byte> buffer)
+        {
+            return _stream.Read(buffer);
         }
 
         // <summary>
@@ -244,13 +254,46 @@ namespace MS.Internal.AppModel
         // <summary>
         // Overridden Write method
         // </summary>
-        public override void Write(
+        public sealed override void Write(
             byte[] buffer,
             int offset,
             int count
             )
         {
             _stream.Write(buffer, offset, count);
+        }
+
+        // <summary>
+        // Overridden Write method
+        // </summary>
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            _stream.Write(buffer);
+        }
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        {
+            return _stream.ReadAsync(buffer, cancellationToken);
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            return _stream.ReadAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            return _stream.WriteAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override Task FlushAsync(CancellationToken cancellationToken)
+        {
+            return _stream.FlushAsync(cancellationToken);
+        }
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        {
+            return _stream.WriteAsync(buffer, cancellationToken);
         }
 
         // <summary>
@@ -274,7 +317,7 @@ namespace MS.Internal.AppModel
         #region Private Members
 
         private SecurityCriticalDataForSet<Assembly> _assembly;
-        private Stream _stream = null;
+        private readonly Stream _stream;
 
         #endregion Private Members
     }
